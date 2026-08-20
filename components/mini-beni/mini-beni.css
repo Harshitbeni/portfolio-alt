@@ -1,0 +1,163 @@
+:root {
+  --duration-fast: 250ms;
+  --duration-medium: 350ms;
+  --ease-in-out: ease-in-out;
+  --ease-smooth-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --mini-beni-profile-fade-ms: var(--duration-fast);
+  --mini-beni-pet-fade-ms: var(--duration-fast);
+  --mini-beni-fade-gap-ms: 0ms;
+  --mini-beni-text-move-ms: var(--duration-medium);
+}
+
+[data-mini-beni-profile-link] {
+  transition-duration: var(--mini-beni-text-move-ms);
+  transition-property: gap;
+  transition-timing-function: var(--ease-smooth-out);
+  will-change: gap;
+}
+
+[data-mini-beni-profile-circle] {
+  flex: 0 0 auto;
+  overflow: hidden;
+  cursor: grab;
+  transition-duration: var(--mini-beni-profile-fade-ms),
+    var(--mini-beni-text-move-ms), var(--mini-beni-text-move-ms),
+    var(--duration-fast);
+  transition-property: opacity, width, height, transform;
+  transition-timing-function: var(--ease-in-out), var(--ease-smooth-out),
+    var(--ease-smooth-out), var(--ease-smooth-out);
+  will-change: opacity, width, height, transform;
+}
+
+[data-mini-beni-profile-circle]:active {
+  cursor: grabbing;
+  transform: scale(0.9);
+}
+
+[data-mini-beni-profile-link][data-mini-beni-reveal="revealing"]
+  [data-mini-beni-profile-circle],
+[data-mini-beni-profile-link][data-mini-beni-reveal="free"]
+  [data-mini-beni-profile-circle] {
+  opacity: 0;
+}
+
+[data-mini-beni-profile-link][data-mini-beni-reveal="free"] {
+  gap: 0;
+}
+
+[data-mini-beni-profile-link][data-mini-beni-reveal="free"]
+  [data-mini-beni-profile-circle] {
+  width: 0;
+  height: 0;
+}
+
+.mini-beni {
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  left: 0;
+  display: block;
+  width: var(--mini-beni-width);
+  height: var(--mini-beni-height);
+  margin: 0;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  background-color: transparent;
+  background-image: var(--mini-beni-sprite);
+  background-position: var(--mini-beni-frame-x) var(--mini-beni-frame-y);
+  background-repeat: no-repeat;
+  background-size: 800% 1100%;
+  color: inherit;
+  cursor: grab;
+  font: inherit;
+  opacity: 0;
+  pointer-events: none;
+  touch-action: none;
+  transform: translate3d(var(--mini-beni-x), var(--mini-beni-y), 0);
+  transition-duration: var(--mini-beni-pet-fade-ms);
+  transition-property: opacity;
+  transition-timing-function: var(--ease-in-out);
+  user-select: none;
+  -webkit-user-drag: none;
+  will-change: transform, background-position, opacity;
+}
+
+.mini-beni:focus {
+  outline: none;
+}
+
+.mini-beni:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (forced-colors: active) {
+  .mini-beni:focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+.mini-beni[data-reveal-state="revealing"] {
+  opacity: 1;
+  transition-delay: calc(
+    var(--mini-beni-profile-fade-ms) + var(--mini-beni-fade-gap-ms)
+  );
+}
+
+.mini-beni[data-reveal-state="free"] {
+  opacity: 1;
+  pointer-events: auto;
+  transition-delay: 0ms;
+}
+
+.mini-beni[data-dragging="true"] {
+  cursor: grabbing;
+}
+
+.mini-beni-chat-transcript-fades {
+  --mini-beni-chat-fade-height: 48px;
+  --mini-beni-chat-fade-color: #fcfcfc;
+  --mini-beni-chat-fade-opacity: 1;
+  isolation: isolate;
+}
+
+.mini-beni-chat-transcript-fade {
+  z-index: 1;
+}
+
+/* Clip bubble filter/transform ink so it cannot inflate the log's scrollHeight. */
+.mini-beni-chat-bubble-clip {
+  overflow: clip;
+  contain: paint;
+}
+
+.mini-beni-chat-bubble-enter {
+  animation: mini-beni-chat-bubble-in var(--resize-dur) var(--resize-ease)
+    backwards;
+}
+
+@keyframes mini-beni-chat-bubble-in {
+  from {
+    filter: blur(var(--mini-beni-chat-bubble-enter-blur, 0px));
+    transform: translateY(var(--mini-beni-chat-bubble-enter-y, 100%))
+      scale(var(--mini-beni-chat-bubble-enter-scale, 1));
+  }
+  to {
+    filter: blur(0);
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mini-beni,
+  [data-mini-beni-profile-circle],
+  [data-mini-beni-profile-link] {
+    transition: none;
+  }
+
+  .mini-beni-chat-bubble-enter {
+    animation: none !important;
+  }
+}

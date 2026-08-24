@@ -13,6 +13,7 @@ const TOOLTIP_PADDING_Y = 6
 const TOOLTIP_TEXT_TOKEN: TypeTokenName = "xs"
 
 const TOOLTIP_TEXT_TOKEN_CLASS: Record<TypeTokenName, string> = {
+  md: "text-md leading-6",
   sm: "text-sm leading-5",
   xs: "text-xs leading-4",
   xxs: "text-xxs leading-4",

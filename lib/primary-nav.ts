@@ -11,7 +11,7 @@ export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
   { href: "/#work", label: "work" },
   { href: "/about", label: "about" },
   { href: "/play", label: "play" },
-  { href: "https://notes.harshitbeni.com", label: "notes", external: true },
+  { href: "/?tab=notes", label: "notes" },
   { href: RESUME_HREF, label: "resume" },
 ];
 

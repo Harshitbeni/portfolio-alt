@@ -108,7 +108,7 @@ export const STACK_ITEMS = [
     id: "things-3",
     name: "Things 3",
     description: "Quintessential Personal task manager.",
-    iconSrc: "/stack/things-3.png",
+    iconSrc: "/stack/things.png",
     href: "https://culturedcode.com/things/",
   },
 ] satisfies StackItem[];

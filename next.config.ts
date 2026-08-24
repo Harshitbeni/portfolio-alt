@@ -3,6 +3,8 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/beni": ["./lib/beni-ai/knowledge.md"],
+    "/": ["./content/notes/**/*"],
+    "/notes/[slug]": ["./content/notes/**/*"],
   },
   images: {
     remotePatterns: [

@@ -16,7 +16,7 @@ Next.js App Router + TypeScript + Tailwind v4 + shadcn/ui (Radix).
 
 Start small. Add colors and components only when asked.
 
-- **Type:** Tokens: `SM` (`--type-sm`, 14px), `XS` (`--type-xs`, 13px), `XXS` (`--type-xxs`, 12px). Add more type tokens only when asked.
+- **Type:** Tokens: `MD` (`--type-md`, 16px; `text-md-medium` / `text-md-semibold` at 500 / 600), `SM` (`--type-sm`, 14px), `XS` (`--type-xs`, 13px), `XXS` (`--type-xxs`, 12px). Add more type tokens only when asked.
 - **Shadows:** Radix Themes scale `--shadow-1`–`--shadow-6` (light/dark). Tailwind `shadow-sm` / `shadow-md` / `shadow-lg` map to 2 / 4 / 5.
 - **Components:** shadcn/ui (Radix). Installed: `Button`, `Dropdown Menu`, `Checkbox`, `Input`, `Bubble`. Add more with `npx shadcn@latest add <name>`.
 - **Colors:** Radix `gray`, `red`, `green`, `yellow`, `blue`, and `purple` 1–12, plus Radix `gray` alpha (`--gray-a1`–`--gray-a12`). Semantic status still maps to `--red-9` / `--green-9` / `--yellow-9`. Tokens live in `app/globals.css`.

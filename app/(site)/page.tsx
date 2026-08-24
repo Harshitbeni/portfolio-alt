@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { HomeTabs } from "@/components/home-tabs";
 import { NavCard } from "@/components/nav-card";
+import { NotesPanel } from "@/components/notes-panel";
 import { TimeModeToggle } from "@/components/time-mode-toggle";
 import { getMusicPreview } from "@/lib/music";
 import {
@@ -34,12 +35,12 @@ export default async function Home({
 
   return (
     <>
-      <div className="mx-auto flex w-full max-w-[600px] flex-col gap-12 pt-[200px] pb-16">
-        <h1 className="sr-only">Harshit Beniwal</h1>
-        <div className="flex w-full flex-col items-start px-3">
-          <NavCard location={location} liveLocation={false} />
-        </div>
-        <div className="flex w-full flex-col items-start gap-12 px-4">
+      <h1 className="sr-only">Harshit Beniwal</h1>
+      <div className="flex w-full flex-col items-start px-3">
+        <NavCard location={location} liveLocation={false} />
+      </div>
+      <div className="flex w-full flex-col items-start gap-12">
+        <div className="px-4">
           <p className="text-pretty text-sm leading-5 text-muted-foreground">
             Hello, I am a{" "}
             <strong className="font-normal text-foreground">
@@ -49,13 +50,14 @@ export default async function Home({
             or otherwise. My expertise lies in interaction design, systems
             thinking, and putting uncommon care.
           </p>
-          <Suspense fallback={null}>
-            <HomeTabs
-              initialMusicSections={initialMusicSections}
-              initialMusicTotalTracks={musicPreview?.totalTracks}
-            />
-          </Suspense>
         </div>
+        <Suspense fallback={null}>
+          <HomeTabs
+            initialMusicSections={initialMusicSections}
+            initialMusicTotalTracks={musicPreview?.totalTracks}
+            notesPanel={<NotesPanel />}
+          />
+        </Suspense>
       </div>
       <TimeModeToggle />
     </>

@@ -41,8 +41,13 @@ import {
   type PaletteToken,
 } from "@/lib/tokens";
 import {
+  TYPE_STYLE_NAMES,
+  TYPE_STYLE_WEIGHTS,
   TYPE_TOKEN_NAMES,
   TYPE_TOKENS,
+  TYPE_WEIGHTS as TYPE_TOKEN_WEIGHTS,
+  typeStyleToken,
+  type TypeStyleName,
   type TypeTokenName,
 } from "@/lib/type-tokens";
 import {
@@ -63,13 +68,17 @@ import { OBJECT_ITEMS } from "@/lib/objects";
 import { PLAY_ITEMS } from "@/lib/play";
 import { STACK_ITEMS } from "@/lib/stack";
 import { WORK_ITEMS, type WorkIconName } from "@/lib/work";
+import { PlaygroundHomeTabsHeader } from "@/components/home-tabs/playground-home-tabs-header";
 import { PlaygroundMiniBeniTypingIndicator } from "./playground-mini-beni-typing-indicator";
 import { PlaygroundVideoPlayer } from "./playground-video-player";
 
 const inspectorRowClassName =
   "flex h-8 shrink-0 items-center justify-between gap-3 text-sm text-muted-foreground";
 
-const TYPE_TOKEN_LABELS: Record<TypeTokenName, string> = {
+const TYPE_STYLE_LABELS: Record<TypeStyleName, string> = {
+  md: "MD",
+  "md-medium": "MD Medium",
+  "md-semibold": "MD Semibold",
   sm: "SM",
   xs: "XS",
   xxs: "XXS",
@@ -92,6 +101,7 @@ type Selection =
   | "nav-card"
   | "bubble"
   | "tabs"
+  | "home-tabs-header"
   | "book-row"
   | "music-row"
   | "stack-row"
@@ -190,7 +200,8 @@ export function Playground() {
   const [colorOverrides, setColorOverrides] = useState<
     Partial<Record<PaletteToken, string>>
   >({});
-  const [typeToken, setTypeToken] = useState<TypeTokenName>("sm");
+  const [typeStyle, setTypeStyle] = useState<TypeStyleName>("sm");
+  const typeToken = typeStyleToken(typeStyle);
   const [typeSizes, setTypeSizes] = useState<Record<TypeTokenName, number>>(
     () => ({ ...TYPE_TOKENS })
   );
@@ -319,15 +330,15 @@ export function Playground() {
             icon={filledIcons.type}
             defaultOpen={false}
           >
-            {TYPE_TOKEN_NAMES.map((name) => (
+            {TYPE_STYLE_NAMES.map((name) => (
               <NavItem
                 key={name}
-                label={TYPE_TOKEN_LABELS[name]}
-                current={selection === "typography" && typeToken === name}
+                label={TYPE_STYLE_LABELS[name]}
+                current={selection === "typography" && typeStyle === name}
                 nested
                 onClick={() => {
                   setSelection("typography");
-                  setTypeToken(name);
+                  setTypeStyle(name);
                 }}
               />
             ))}
@@ -427,6 +438,13 @@ export function Playground() {
               current={selection === "tabs"}
               nested
               onClick={() => setSelection("tabs")}
+            />
+            <NavItem
+              label="Home tabs header"
+              current={selection === "home-tabs-header"}
+              nested
+              custom
+              onClick={() => setSelection("home-tabs-header")}
             />
             <NavItem
               label="Book row"
@@ -544,26 +562,36 @@ export function Playground() {
 
         {selection === "typography" ? (
           <div className="flex flex-col items-start gap-3">
-            {TYPE_TOKEN_NAMES.map((name) => (
-              <button
-                key={name}
-                type="button"
-                aria-current={typeToken === name ? "true" : undefined}
-                onClick={() => setTypeToken(name)}
-                className={cn(
-                  "text-left outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
-                  typeToken === name
-                    ? "text-foreground"
-                    : "text-muted-foreground"
-                )}
-                style={{
-                  fontSize: `var(--type-${name})`,
-                  fontVariationSettings: fontWeights[typeWeight],
-                }}
-              >
-                {TYPE_PREVIEW_SENTENCE}
-              </button>
-            ))}
+            {TYPE_STYLE_NAMES.map((name) => {
+              const weightName = TYPE_STYLE_WEIGHTS[name];
+              return (
+                <button
+                  key={name}
+                  type="button"
+                  aria-current={typeStyle === name ? "true" : undefined}
+                  onClick={() => setTypeStyle(name)}
+                  className={cn(
+                    "text-left outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
+                    typeStyle === name
+                      ? "text-foreground"
+                      : "text-muted-foreground"
+                  )}
+                  style={{
+                    fontSize: `var(--type-${typeStyleToken(name)})`,
+                    lineHeight:
+                      typeStyleToken(name) === "md" ? "1.5rem" : undefined,
+                    fontWeight: weightName
+                      ? TYPE_TOKEN_WEIGHTS[weightName]
+                      : undefined,
+                    fontVariationSettings: weightName
+                      ? undefined
+                      : fontWeights[typeWeight],
+                  }}
+                >
+                  {TYPE_PREVIEW_SENTENCE}
+                </button>
+              );
+            })}
           </div>
         ) : null}
 
@@ -696,6 +724,8 @@ export function Playground() {
             </Tabs>
           </div>
         ) : null}
+
+        {selection === "home-tabs-header" ? <PlaygroundHomeTabsHeader /> : null}
 
         {selection === "video-player" ? (
           <PlaygroundVideoPlayer

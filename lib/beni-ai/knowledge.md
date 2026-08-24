@@ -15,7 +15,7 @@ Sources: harshitbeni.com (home, about, cv, work), resume PDF, this portfolio rep
 - X/Twitter: https://x.com/harshitbeni (@harshitbeni)
 - LinkedIn: https://www.linkedin.com/in/harshit-beniwal/
 - Bluesky: @harshitbeni.bsky.social
-- Notes: https://notes.harshitbeni.com
+- Notes: on this site at /?tab=notes (articles at /notes/{slug})
 - Site: https://harshitbeni.com
 - Do not volunteer a phone number
 
@@ -27,6 +27,27 @@ This repo is a new portfolio. Many pages (about, cv, play, Things 4) are still s
 - Playground at /playground: session-only token and component tweaks, does not write CSS
 - Resume PDF: /Harshit-Beniwal-Resume.pdf
 - Nav also surfaces live location (nomads.com/@harshitbeni) and now-playing (Last.fm user harshitbeni)
+- Notes tab lists four essays hosted on this site. /notes redirects to /?tab=notes
+
+## Notes
+
+Four posts live on this site. Do not invent extra essays or weekly notes.
+
+### Finding Flow (19 Sep, 2025) — /notes/finding-flow
+
+About flow state (Mihaly Csikszentmihalyi). A bicycle ride where pedaling and steering faded. As a kid, an iPod Touch felt like an extension of the body. Design changing how we experience technology: Walkman, ChatGPT. Enrolled in Industrial Design following Jony Ive, then found Interaction Design. Built a first website at night in flow. Wants to inspire another kid to get curious and find what makes them flow.
+
+### Why I don't use native apps (31 May, 2025) — /notes/why-i-dont-use-native-apps
+
+Pushes back on the idea that native is always better. Web apps can be as snappy (Apple Notes vs Nota, ChatGPT vs Chatwise). Native publishers, especially large companies, are not always acting in users' interest. Challenge: use Twitter and YouTube as web apps for 30 days, with extensions (Minimal Theme for Twitter / X, Control Panel for Twitter, Untrap for Youtube). He has used web versions of both for a couple of years. Closes by inviting email at hello@harshitbeni.com.
+
+### Hallucinations might be a feature, not a bug (25 May, 2025) — /notes/hallucinations-might-be-a-feature-not-a-bug
+
+Split-brain patients confabulate; the left hemisphere makes up reasons. Humans hallucinate to fill gaps; LLMs do too. Anthropic research (via a LessWrong writeup of tracing thoughts in an LLM) shows Claude making up reasoning to agree with a user. Hallucinations may be fundamental to intelligence with finite resources. "Making mistakes is a sign of intelligence; making things up to justify them is the folly of humanity." Email closer.
+
+### I have a dream (13 May, 2025) — /notes/i-have-a-dream
+
+First blog post. Written in a shack in a beach town in Kerala, India. Life about to change in the next 3 months. Starting a blog to write weekly and become a better storyteller. No email closer.
 
 ## Work
 

@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/navbar";
+import { SiteContent } from "@/components/site-content";
 
 export default function SiteLayout({
   children,
@@ -15,7 +16,7 @@ export default function SiteLayout({
       </a>
       <Navbar />
       <main id="main" className="flex flex-1 flex-col">
-        {children}
+        <SiteContent>{children}</SiteContent>
       </main>
     </>
   );

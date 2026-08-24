@@ -2,11 +2,7 @@ import { getMusicLibrary, getMusicPreview, bucketMusicTracks } from "@/lib/music
 
 export const dynamic = "force-dynamic";
 
-const PREVIEW_CACHE_HEADERS = {
-  "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=300",
-};
-
-const FULL_CACHE_HEADERS = {
+const CACHE_HEADERS = {
   "Cache-Control": "no-store",
 };
 
@@ -19,7 +15,7 @@ export async function GET(request: Request) {
 
       return Response.json(
         { sections: bucketMusicTracks(tracks), partial: false },
-        { headers: FULL_CACHE_HEADERS },
+        { headers: CACHE_HEADERS },
       );
     }
 
@@ -32,12 +28,12 @@ export async function GET(request: Request) {
         totalTracks: preview?.totalTracks ?? 0,
         partial: true,
       },
-      { headers: PREVIEW_CACHE_HEADERS },
+      { headers: CACHE_HEADERS },
     );
   } catch {
     return Response.json(
       { sections: [], error: "Music storage is unavailable." },
-      { headers: FULL_CACHE_HEADERS, status: 503 },
+      { headers: CACHE_HEADERS, status: 503 },
     );
   }
 }

@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BooksPanel } from "@/components/books-panel";
@@ -15,82 +16,41 @@ import { PlayPanel } from "@/components/play-panel";
 import { StackPanel } from "@/components/stack-panel";
 import { WorkRow } from "@/components/work-row";
 import {
+  HOME_TABS,
+  HOME_TABS_TRANSITION_DURATION,
+  OTHER_TABS,
+  homeTabFromParam,
+  isHomeTab,
+  isOtherTab,
+  getHomeScrollKey,
+  type HomeTab,
+  type OtherTab,
+} from "@/components/home-tabs/constants";
+import { HomeTabsHeader } from "@/components/home-tabs/home-tabs-header";
+import {
   prefetchMusicLibrary,
   prefetchNowPlaying,
   seedMusicCache,
 } from "@/lib/music-client-cache";
 import type { MusicSection } from "@/lib/music";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { WORK_ITEMS } from "@/lib/work";
 
-const HOME_TABS_TRANSITION_DURATION = 160;
 const PLAY_ROW_FADE_HEIGHT = 32;
 
-const HOME_TABS = [
-  { value: "work", label: "Work" },
-  { value: "play", label: "Play" },
-  { value: "apps", label: "Apps" },
-  { value: "others", label: "Others" },
-] as const;
+function restoreScrollPosition(scrollY: number) {
+  const applyScroll = () => {
+    window.scrollTo({ top: scrollY, behavior: "instant" });
+  };
 
-type HomeTab = (typeof HOME_TABS)[number]["value"];
-
-const OTHER_TABS = [
-  { value: "books", label: "Books" },
-  { value: "music", label: "Music" },
-  { value: "stack", label: "Stack" },
-  { value: "objects", label: "Objects" },
-] as const;
-
-type OtherTab = (typeof OTHER_TABS)[number]["value"];
-
-function isHomeTab(value: string | null): value is HomeTab {
-  return HOME_TABS.some((item) => item.value === value);
-}
-
-function isOtherTab(value: string | null): value is OtherTab {
-  return OTHER_TABS.some((item) => item.value === value);
-}
-
-function homeTabFromParam(value: string | null): HomeTab {
-  if (isOtherTab(value)) return "others";
-  if (isHomeTab(value) && value !== "others") return value;
-  return HOME_TABS[0].value;
-}
-
-function tabParamForSelection(
-  tab: HomeTab,
-  otherTab: OtherTab,
-): Exclude<HomeTab, "others"> | OtherTab | null {
-  switch (tab) {
-    case "work":
-      return null;
-    case "play":
-    case "apps":
-      return tab;
-    case "others":
-      return otherTab;
-    default: {
-      const exhaustive: never = tab;
-      return exhaustive;
-    }
-  }
+  requestAnimationFrame(() => {
+    applyScroll();
+    requestAnimationFrame(applyScroll);
+  });
 }
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
-function scrollPageToTop() {
-  window.scrollTo({
-    top: 0,
-    behavior: prefersReducedMotion() ? "instant" : "smooth",
-  });
 }
 
 function pageSlideDurationMs(
@@ -103,6 +63,25 @@ function pageSlideDurationMs(
   const raw = getComputedStyle(slider).getPropertyValue("--page-slide-dur").trim();
   const parsed = Number.parseFloat(raw);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function tabParamForSelection(
+  tab: HomeTab,
+  otherTab: OtherTab,
+): Exclude<HomeTab, "others"> | OtherTab | null {
+  switch (tab) {
+    case "work":
+      return null;
+    case "play":
+    case "notes":
+      return tab;
+    case "others":
+      return otherTab;
+    default: {
+      const exhaustive: never = tab;
+      return exhaustive;
+    }
+  }
 }
 
 function OtherTabPanelContent({ tab }: { tab: OtherTab }) {
@@ -215,42 +194,56 @@ function HomeTabPanel({
   otherTab,
   playFadeHeight,
   mediaActive,
+  notesPanel,
 }: {
   value: HomeTab;
   otherTab: OtherTab;
   playFadeHeight: number;
   mediaActive: boolean;
+  notesPanel: ReactNode;
 }) {
+  let content: ReactNode;
+
   switch (value) {
     case "work":
-      return (
+      content = (
         <div className="flex w-full flex-col gap-12">
           {WORK_ITEMS.map(({ id, ...item }) => (
             <WorkRow key={id} {...item} />
           ))}
         </div>
       );
+      break;
     case "play":
-      return (
+      content = (
         <PlayPanel fadeHeight={playFadeHeight} mediaActive={mediaActive} />
       );
-    case "apps":
-      return null;
+      break;
+    case "notes":
+      content = notesPanel;
+      break;
     case "others":
-      return <OtherTabPanels activeTab={otherTab} />;
+      content = <OtherTabPanels activeTab={otherTab} />;
+      break;
     default: {
       const exhaustive: never = value;
       return exhaustive;
     }
   }
+
+  return <div className="px-4">{content}</div>;
 }
 
 export function HomeTabs({
   initialMusicSections = null,
   initialMusicTotalTracks,
+  notesPanel,
+  mobileStackEnabled = false,
 }: {
   initialMusicSections?: MusicSection[] | null;
   initialMusicTotalTracks?: number;
+  notesPanel: ReactNode;
+  mobileStackEnabled?: boolean;
 }) {
   if (initialMusicSections?.length) {
     seedMusicCache(initialMusicSections, initialMusicTotalTracks);
@@ -261,12 +254,13 @@ export function HomeTabs({
     void prefetchMusicLibrary();
   }, []);
 
-  const scrollYRef = useRef(0);
+  const scrollPositionsRef = useRef<Partial<Record<string, number>>>({});
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
   const pendingTabParamRef = useRef<string | undefined>(undefined);
+  const tabChangeGuardRef = useRef<(nextTab: HomeTab) => boolean>(() => false);
   const [tab, setTab] = useState<HomeTab>(() => homeTabFromParam(tabParam));
   const [visibleTabs, setVisibleTabs] = useState<HomeTab[]>(() => [
     homeTabFromParam(tabParam),
@@ -279,9 +273,8 @@ export function HomeTabs({
   );
   const [exitEnabled, setExitEnabled] = useState(false);
   const [otherTab, setOtherTab] = useState<OtherTab>(
-    isOtherTab(tabParam) ? tabParam : OTHER_TABS[0].value,
+    isOtherTab(tabParam) ? tabParam : "books",
   );
-  const activeOtherTab = otherTab;
   const tabsListRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLSpanElement>(null);
   const slideRef = useRef<HTMLDivElement>(null);
@@ -294,8 +287,9 @@ export function HomeTabs({
     (nextTab: HomeTab, nextOtherTab: OtherTab = otherTab) => {
       const params = new URLSearchParams(searchParams.toString());
       const nextTabParam = tabParamForSelection(nextTab, nextOtherTab);
+      const currentScrollKey = getHomeScrollKey(tab, otherTab);
 
-      scrollYRef.current = window.scrollY;
+      scrollPositionsRef.current[currentScrollKey] = window.scrollY;
       setTab(nextTab);
       setOtherTab(nextOtherTab);
       pendingTabParamRef.current = nextTabParam ?? "";
@@ -308,12 +302,17 @@ export function HomeTabs({
 
       const query = params.toString();
       const href = query ? `${pathname}?${query}` : pathname;
+      const nextScrollKey = getHomeScrollKey(nextTab, nextOtherTab);
+      const nextScrollY = scrollPositionsRef.current[nextScrollKey] ?? 0;
+
+      restoreScrollPosition(nextScrollY);
 
       requestAnimationFrame(() => {
         router.replace(href, { scroll: false });
+        restoreScrollPosition(nextScrollY);
       });
     },
-    [otherTab, pathname, router, searchParams],
+    [otherTab, pathname, router, searchParams, tab],
   );
 
   useEffect(() => {
@@ -355,8 +354,11 @@ export function HomeTabs({
   }, []);
 
   useEffect(() => {
+    const scrollKey = getHomeScrollKey(tab, otherTab);
+    const scrollY = scrollPositionsRef.current[scrollKey] ?? 0;
+
     const frame = requestAnimationFrame(() => {
-      window.scrollTo({ top: scrollYRef.current, behavior: "instant" });
+      restoreScrollPosition(scrollY);
       movePill(hasMountedRef.current);
       hasMountedRef.current = true;
       setExitEnabled(true);
@@ -368,7 +370,7 @@ export function HomeTabs({
       cancelAnimationFrame(frame);
       window.removeEventListener("resize", handleResize);
     };
-  }, [movePill, tab]);
+  }, [movePill, otherTab, tab]);
 
   useEffect(() => {
     if (isFirstPaintRef.current) {
@@ -407,95 +409,36 @@ export function HomeTabs({
     return () => window.clearTimeout(timeout);
   }, [renderedTab, tab, visibleTabs]);
 
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => movePill(false));
+    return () => cancelAnimationFrame(frame);
+  }, [movePill, tab]);
+
   return (
     <Tabs
       value={tab}
       onValueChange={(value) => {
         const nextTab = isHomeTab(value) ? value : HOME_TABS[0].value;
+
+        if (tabChangeGuardRef.current(nextTab)) {
+          return;
+        }
+
         selectTab(nextTab);
       }}
       className="w-full gap-12"
     >
-      <div className="sticky top-0 z-10 w-full overflow-visible bg-background/95 py-2 backdrop-blur-[24px] supports-[backdrop-filter]:bg-background/80">
-        <div className="flex w-full flex-wrap items-center gap-3">
-          <TabsList
-            variant="pills"
-            aria-label="Home sections"
-            className="t-tabs z-10"
-            ref={tabsListRef}
-          >
-            {tab !== "others" && (
-              <span
-                aria-hidden
-                className="t-tabs-pill"
-                ref={pillRef}
-                style={
-                  {
-                    "--tabs-dur": `${HOME_TABS_TRANSITION_DURATION}ms`,
-                  } as CSSProperties
-                }
-              />
-            )}
-            {HOME_TABS.map((item) => (
-              <TabsTrigger
-                key={item.value}
-                value={item.value}
-                className={`t-tab ${
-                  item.value === "others" && tab === "others"
-                    ? "relative z-10 mr-[-6px] !bg-gray-1 !text-gray-10 !shadow-[0_0_0_1px_var(--tabs-stroke)] dark:!bg-gray-1 dark:!text-gray-10"
-                    : item.value === tab
-                      ? "!bg-transparent"
-                      : "!bg-transparent hover:!bg-[var(--tabs-hover)]"
-                }`}
-                onClick={() => {
-                  if (item.value === tab) {
-                    scrollPageToTop();
-                  }
-                }}
-              >
-                {item.label}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <div
-            aria-label="Other sections"
-            className="t-resize home-other-tabs -ml-[30px] max-sm:ml-0"
-            data-open={tab === "others"}
-            inert={tab !== "others"}
-            role="group"
-            style={
-              {
-                "--resize-dur": `${HOME_TABS_TRANSITION_DURATION}ms`,
-              } as CSSProperties
-            }
-          >
-            <div className="home-other-tabs-inner">
-              {OTHER_TABS.map((item, index) => (
-                <button
-                  key={item.value}
-                  aria-pressed={activeOtherTab === item.value}
-                  className={`home-other-tab ${
-                    index > 0 ? "-ml-6" : ""
-                  }`}
-                  onClick={() => {
-                    if (tab === "others" && activeOtherTab === item.value) {
-                      scrollPageToTop();
-                      return;
-                    }
-
-                    setOtherTab(item.value);
-                    selectTab("others", item.value);
-                  }}
-                  style={{ zIndex: OTHER_TABS.length - index }}
-                  type="button"
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <HomeTabsHeader
+        tab={tab}
+        otherTab={otherTab}
+        mobileStackEnabled={mobileStackEnabled}
+        tabsListRef={tabsListRef}
+        pillRef={pillRef}
+        scrollPositionsRef={scrollPositionsRef}
+        getScrollKey={getHomeScrollKey}
+        onSelectTab={selectTab}
+        tabChangeGuardRef={tabChangeGuardRef}
+      />
       <div
         className={`t-page-slide w-full${visibleTabs.length > 1 ? " is-sliding" : ""}`}
         data-page={renderedPage}
@@ -539,9 +482,10 @@ export function HomeTabs({
             >
               <HomeTabPanel
                 value={item.value}
-                otherTab={activeOtherTab}
+                otherTab={otherTab}
                 playFadeHeight={PLAY_ROW_FADE_HEIGHT}
                 mediaActive={item.value !== "play" || (isFlow && visibleTabs.length === 1)}
+                notesPanel={notesPanel}
               />
             </TabsContent>
           );

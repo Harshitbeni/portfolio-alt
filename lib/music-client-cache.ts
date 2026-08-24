@@ -21,7 +21,7 @@ type MusicCacheSnapshot = {
   partial: boolean;
 };
 
-const PREVIEW_STORAGE_KEY = "portfolio:music-preview:v1";
+const STALE_PREVIEW_STORAGE_KEY = "portfolio:music-preview:v1";
 const NOW_PLAYING_POLL_MS = 10_000;
 
 const listeners = new Set<() => void>();
@@ -31,7 +31,6 @@ let cachedNowPlaying: MusicTrack | null = null;
 let cachedTotalTracks = 0;
 let cachedPartial = false;
 let hasFullLibrary = false;
-let didHydrateStorage = false;
 let libraryRequest: Promise<MusicSection[] | null> | null = null;
 let fullLibraryRequest: Promise<void> | null = null;
 let syncRequest: Promise<void> | null = null;
@@ -166,106 +165,34 @@ function nowPlayingEquals(first: MusicTrack | null, second: MusicTrack | null) {
   );
 }
 
-function persistPreview(sections: MusicSection[], totalTracks: number) {
-  if (typeof window === "undefined") {
-    return;
+function newestPlayedAt(sections: MusicSection[]) {
+  let newest = Number.NEGATIVE_INFINITY;
+
+  for (const section of stripNowPlaying(sections)) {
+    for (const track of section.tracks) {
+      if ((track.playedAt ?? Number.NEGATIVE_INFINITY) > newest) {
+        newest = track.playedAt ?? Number.NEGATIVE_INFINITY;
+      }
+    }
   }
 
-  try {
-    window.sessionStorage.setItem(
-      PREVIEW_STORAGE_KEY,
-      JSON.stringify({
-        sections: stripNowPlaying(sections),
-        totalTracks,
-      }),
-    );
-  } catch {
-    // Ignore quota / private-mode failures.
-  }
+  return newest;
 }
 
-function readPreviewFromStorage(): {
-  sections: MusicSection[];
-  totalTracks: number;
-} | null {
-  if (typeof window === "undefined") {
-    return null;
+let didClearStalePreviewStorage = false;
+
+function clearStalePreviewStorage() {
+  if (didClearStalePreviewStorage || typeof window === "undefined") {
+    return;
   }
+
+  didClearStalePreviewStorage = true;
 
   try {
-    const raw = window.sessionStorage.getItem(PREVIEW_STORAGE_KEY);
-
-    if (!raw) {
-      return null;
-    }
-
-    const payload: unknown = JSON.parse(raw);
-
-    if (!payload || typeof payload !== "object") {
-      return null;
-    }
-
-    const stored = payload as {
-      sections?: unknown;
-      totalTracks?: unknown;
-    };
-
-    if (!Array.isArray(stored.sections) || stored.sections.length === 0) {
-      return null;
-    }
-
-    if (
-      !stored.sections.every(
-        (section) =>
-          section &&
-          typeof section === "object" &&
-          typeof (section as MusicSection).id === "string" &&
-          typeof (section as MusicSection).label === "string" &&
-          Array.isArray((section as MusicSection).tracks) &&
-          (section as MusicSection).tracks.every(isMusicTrack),
-      )
-    ) {
-      return null;
-    }
-
-    return {
-      sections: stripNowPlaying(stored.sections as MusicSection[]),
-      totalTracks:
-        typeof stored.totalTracks === "number"
-          ? stored.totalTracks
-          : trackCount(stored.sections as MusicSection[]),
-    };
+    window.sessionStorage.removeItem(STALE_PREVIEW_STORAGE_KEY);
   } catch {
-    return null;
+    // Ignore private-mode failures.
   }
-}
-
-function hydrateFromStorage() {
-  if (didHydrateStorage) {
-    return;
-  }
-
-  didHydrateStorage = true;
-
-  if (cachedSections !== null) {
-    return;
-  }
-
-  const stored = readPreviewFromStorage();
-
-  if (!stored) {
-    return;
-  }
-
-  cachedSections = stored.sections;
-  cachedPartial = true;
-  cachedTotalTracks = stored.totalTracks;
-  snapshot = {
-    sections: overlayLiveNowPlaying(cachedSections, cachedNowPlaying),
-    nowPlaying: cachedNowPlaying,
-    totalTracks: cachedTotalTracks,
-    partial: cachedPartial,
-  };
 }
 
 function applyLibrary(
@@ -279,14 +206,20 @@ function applyLibrary(
       return;
     }
 
+    if (
+      partial &&
+      cachedSections &&
+      newestPlayedAt(nextSections) < newestPlayedAt(cachedSections)
+    ) {
+      return;
+    }
+
     cachedSections = stripNowPlaying(nextSections);
     cachedPartial = partial;
     cachedTotalTracks = options.totalTracks ?? trackCount(cachedSections);
     if (!partial) {
       hasFullLibrary = true;
       cachedPartial = false;
-    } else {
-      persistPreview(cachedSections, cachedTotalTracks);
     }
     emit();
   };
@@ -304,6 +237,7 @@ async function fetchMusicResponse(
   options: { priority?: RequestInit["priority"] } = {},
 ) {
   const response = await fetch(url, {
+    cache: "no-store",
     priority: options.priority,
   });
 
@@ -334,7 +268,6 @@ function scheduleIdle(task: () => void) {
 }
 
 export function getMusicCacheSnapshot(): MusicCacheSnapshot {
-  hydrateFromStorage();
   return snapshot;
 }
 
@@ -366,10 +299,12 @@ export function seedMusicCache(
     totalTracks: cachedTotalTracks,
     partial: cachedPartial,
   };
-  persistPreview(cachedSections, cachedTotalTracks);
+  clearStalePreviewStorage();
 }
 
 export function prefetchMusicLibrary() {
+  clearStalePreviewStorage();
+
   if (libraryRequest) {
     return libraryRequest;
   }
@@ -454,9 +389,9 @@ export function syncMusicLibrary() {
 
 export function warmMusicLibrary() {
   void prefetchMusicLibrary().then(() => {
+    void syncMusicLibrary();
     scheduleIdle(() => {
       void prefetchFullMusicLibrary();
-      void syncMusicLibrary();
     });
   });
 }

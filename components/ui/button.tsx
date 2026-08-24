@@ -9,7 +9,7 @@ import { defaultIcons } from "@/lib/icon-context"
 
 const ChevronDown = defaultIcons["chevron-down"]
 
-const DEFAULT_RADIUS = 6
+const PILL_RADIUS = 9999
 
 const buttonVariants = cva(
   "group/button inline-flex shrink-0 items-center justify-center border border-transparent bg-clip-padding text-sm font-medium whitespace-nowrap transition-all outline-none select-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:outline-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:outline-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
@@ -47,8 +47,9 @@ const buttonVariants = cva(
 )
 
 function resolveRadius(rounded: boolean | number | undefined) {
+  if (rounded === false) return 0
   if (typeof rounded === "number") return Math.max(0, rounded)
-  return DEFAULT_RADIUS
+  return PILL_RADIUS
 }
 
 function Button({
@@ -64,15 +65,13 @@ function Button({
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
-    /** Corner radius. Default follows `--radius` (6px). Pass a number for a custom radius (e.g. 9999 for a pill). */
+    /** Corner radius. Default is pill (`true` / 9999). `false` is square. Pass a number for a custom radius. */
     rounded?: boolean | number
     /** Trailing disclosure chevron (right). */
     chevron?: boolean
   }) {
   const Comp = asChild ? Slot.Root : "button"
   const radius = resolveRadius(rounded)
-  const borderRadius =
-    typeof rounded === "number" ? radius : "var(--radius)"
 
   return (
     <Comp
@@ -81,7 +80,7 @@ function Button({
       data-size={size}
       {...props}
       className={cn(buttonVariants({ variant, size, className }))}
-      style={{ ...style, borderRadius }}
+      style={{ ...style, borderRadius: radius }}
     >
       {asChild ? (
         children

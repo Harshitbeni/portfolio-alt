@@ -39,7 +39,7 @@ export function Navbar() {
   const reduceMotion = useReducedMotion();
   const resumeActive = isNavActive(pathname, RESUME_HREF);
 
-  if (pathname === "/") {
+  if (pathname === "/" || pathname.startsWith("/notes")) {
     return null;
   }
 

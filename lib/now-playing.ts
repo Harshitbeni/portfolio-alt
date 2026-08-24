@@ -1,3 +1,5 @@
+import type { MusicTrack } from "@/lib/music";
+
 export const DEFAULT_LASTFM_USER = "harshitbeni";
 
 export type NowPlaying = {
@@ -8,6 +10,17 @@ export type NowPlaying = {
   nowPlaying: boolean;
   playedAt: number | null;
 };
+
+export function nowPlayingToTrack(data: NowPlaying): MusicTrack {
+  return {
+    id: `${data.artist}\u0000${data.name}`.toLocaleLowerCase(),
+    name: data.name,
+    artist: data.artist,
+    image: data.image,
+    url: data.url,
+    playedAt: data.playedAt,
+  };
+}
 
 export const NOW_PLAYING_FALLBACK: NowPlaying = {
   name: "Heartless",

@@ -1,20 +1,63 @@
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
+import { Suspense } from "react";
+import { HomeTabs } from "@/components/home-tabs";
+import { NavCard } from "@/components/nav-card";
+import { TimeModeToggle } from "@/components/time-mode-toggle";
+import { getMusicPreview } from "@/lib/music";
+import {
+  DEFAULT_NOMADS_LOCATION,
+  fetchNomadsLocation,
+  formatNomadsLocation,
+} from "@/lib/nomads-location";
 
-export default function Home() {
+async function getLocationLabel() {
+  try {
+    return formatNomadsLocation(await fetchNomadsLocation());
+  } catch {
+    return formatNomadsLocation(DEFAULT_NOMADS_LOCATION);
+  }
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}) {
+  const { tab } = await searchParams;
+  const tabValue = Array.isArray(tab) ? tab[0] : tab;
+  const [location, musicPreview] = await Promise.all([
+    getLocationLabel(),
+    tabValue === "music" ? getMusicPreview() : Promise.resolve(null),
+  ]);
+  const initialMusicSections = musicPreview?.sections?.length
+    ? musicPreview.sections
+    : null;
+
   return (
     <>
-      <div className="flex min-h-[70vh] flex-1 items-center justify-center p-8">
-        <Button asChild variant="outline">
-          <Link href="/playground">Playground</Link>
-        </Button>
+      <div className="mx-auto flex w-full max-w-[600px] flex-col gap-12 pt-[200px] pb-16">
+        <h1 className="sr-only">Harshit Beniwal</h1>
+        <div className="flex w-full flex-col items-start px-3">
+          <NavCard location={location} liveLocation={false} />
+        </div>
+        <div className="flex w-full flex-col items-start gap-12 px-4">
+          <p className="text-pretty text-sm leading-5 text-muted-foreground">
+            Hello, I am a{" "}
+            <strong className="font-normal text-foreground">
+              ⌘ Product Designer
+            </strong>{" "}
+            who leads with curiosity and thoughtfulness in everything I do, design
+            or otherwise. My expertise lies in interaction design, systems
+            thinking, and putting uncommon care.
+          </p>
+          <Suspense fallback={null}>
+            <HomeTabs
+              initialMusicSections={initialMusicSections}
+              initialMusicTotalTracks={musicPreview?.totalTracks}
+            />
+          </Suspense>
+        </div>
       </div>
-      <section id="work" className="min-h-screen scroll-mt-20 bg-muted px-8 py-16">
-        <h1 className="text-sm font-medium">work</h1>
-        <Button asChild variant="ghost" rounded={9999} className="mt-4 font-normal">
-          <Link href="/things-4">Things 4</Link>
-        </Button>
-      </section>
+      <TimeModeToggle />
     </>
   );
 }

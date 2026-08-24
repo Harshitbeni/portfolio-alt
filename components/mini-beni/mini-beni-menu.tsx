@@ -15,11 +15,28 @@ import {
   playMiniBeniReplyCue,
   resetMiniBeniReplyCues,
 } from "./play-mini-beni-reply-cue";
+import { MiniBeniTypingIndicator } from "./mini-beni-typing-indicator";
 import {
   getMiniBeniChatBubbleEnterStyle,
-  useMiniBeniChatBubbleEnterDials,
   type MiniBeniChatBubbleEnterStyle,
 } from "./use-mini-beni-chat-bubble-enter-dials";
+import {
+  getMiniBeniTypingIndicatorStyle,
+  MINI_BENI_TYPING_REPLY_DELAY_MS,
+  type MiniBeniTypingIndicatorStyle,
+} from "./use-mini-beni-typing-indicator-dials";
+import { requestBeniReply } from "@/lib/beni-ai/client";
+import {
+  BENI_FALLBACK_REPLY,
+  BENI_MAX_USER_CHARS,
+  beniBubbleStaggerMs,
+  splitBeniBubbles,
+  type BeniChatTurn,
+} from "@/lib/beni-ai/messages";
+import {
+  readMiniBeniChatSession,
+  writeMiniBeniChatSession,
+} from "@/lib/beni-ai/session";
 import { Bubble, BubbleContent, BubbleGroup } from "@/components/ui/bubble";
 import { Input } from "@/components/ui/input";
 import {
@@ -80,8 +97,12 @@ export function MiniBeniMenu({
         side="bottom"
         sideOffset={4}
       >
-        <DropdownMenuItemWithIcon icon="x" onSelect={onClosePet}>
-          Close
+        <DropdownMenuItemWithIcon
+          icon="raising-hand-4-finger"
+          iconClassName="-rotate-45"
+          onSelect={onClosePet}
+        >
+          Bye Bye
         </DropdownMenuItemWithIcon>
         <DropdownMenuItemWithIcon icon="message-circle" onSelect={onChat}>
           {chatOpen ? "Close Chat" : "Chat with Beni"}
@@ -95,38 +116,81 @@ type PopoverSide = "top" | "bottom" | "left" | "right";
 
 const CHAT_COLLISION_PADDING = 8;
 const CHAT_SIDE_OFFSET = 8;
+const CHAT_FULL_HEIGHT = 320;
 const CHAT_INPUT_HEIGHT = 28;
 const CHAT_INPUT_WIDTH = 224;
-const CHAT_TRANSCRIPT_MAX_HEIGHT = 200;
 const CHAT_COLUMN_GAP = 8;
-const MOCK_BENI_REPLY_DELAY_MS = 500;
+const CHAT_TRANSCRIPT_HEIGHT =
+  CHAT_FULL_HEIGHT - CHAT_INPUT_HEIGHT - CHAT_COLUMN_GAP;
+const CHAT_TRANSCRIPT_SHELL_HEIGHT = CHAT_TRANSCRIPT_HEIGHT + CHAT_COLUMN_GAP;
 /** Matches `--resize-dur` in `app/globals.css`. */
 const CHAT_BUBBLE_ENTER_MS = 300;
 
-type ChatMessage = {
+type ChatMessage = BeniChatTurn & {
   id: string;
-  role: "user" | "beni";
-  text: string;
 };
 
-const CANNED_BENI_REPLIES = [
-  "On it.",
-  "Say more?",
-  "Got it.",
-  "Noted.",
-  "Okay.",
-  "Tell me more.",
-] as const;
-
-function getMockBeniReply(index: number) {
-  return CANNED_BENI_REPLIES[index % CANNED_BENI_REPLIES.length];
+function abortReply(controller: { current: AbortController | null }) {
+  controller.current?.abort();
+  controller.current = null;
 }
 
-function clearReplyTimers(timers: { current: number[] }) {
-  for (const timer of timers.current) {
-    window.clearTimeout(timer);
+function waitWithSignal(ms: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+
+    const onAbort = () => {
+      window.clearTimeout(timer);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener("abort", onAbort);
+      resolve();
+    }, ms);
+
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+function isAbortError(error: unknown) {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+async function appendStaggeredBeniBubbles({
+  text,
+  signal,
+  nextMessageId,
+  setMessages,
+}: {
+  text: string;
+  signal: AbortSignal;
+  nextMessageId: () => string;
+  setMessages: (update: (current: ChatMessage[]) => ChatMessage[]) => void;
+}) {
+  const bubbles = splitBeniBubbles(text);
+
+  for (const [index, bubble] of bubbles.entries()) {
+    if (index > 0) {
+      await waitWithSignal(beniBubbleStaggerMs(bubble), signal);
+    }
+
+    if (signal.aborted) {
+      return;
+    }
+
+    setMessages((current) => [
+      ...current,
+      {
+        id: nextMessageId(),
+        role: "beni",
+        text: bubble,
+      },
+    ]);
   }
-  timers.current = [];
 }
 
 function getTranscriptFades(node: HTMLElement) {
@@ -151,7 +215,7 @@ function getChatPopoverSide(rect: DOMRect, hasTranscript: boolean): PopoverSide 
   const viewportHeight = window.innerHeight;
   const columnHeight =
     CHAT_INPUT_HEIGHT +
-    (hasTranscript ? CHAT_TRANSCRIPT_MAX_HEIGHT + CHAT_COLUMN_GAP : 0);
+    (hasTranscript ? CHAT_TRANSCRIPT_SHELL_HEIGHT : 0);
   const space: Record<PopoverSide, number> = {
     top: rect.top - CHAT_COLLISION_PADDING,
     bottom: viewportHeight - rect.bottom - CHAT_COLLISION_PADDING,
@@ -253,34 +317,42 @@ type TranscriptFades = {
   bottom: boolean;
 };
 
-function getTranscriptShellHeight(log: HTMLElement) {
-  return (
-    Math.min(log.scrollHeight, CHAT_TRANSCRIPT_MAX_HEIGHT) + CHAT_COLUMN_GAP
-  );
+function getTranscriptShellHeight() {
+  return CHAT_TRANSCRIPT_SHELL_HEIGHT;
 }
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function MiniBeniChatBubble({ message }: { message: ChatMessage }) {
+function MiniBeniChatBubble({
+  animateEnter,
+  message,
+}: {
+  animateEnter: boolean;
+  message: ChatMessage;
+}) {
   useLayoutEffect(() => {
-    if (message.role !== "beni") {
+    if (!animateEnter || message.role !== "beni") {
       return;
     }
 
     playMiniBeniReplyCue(message.id);
-  }, [message.id, message.role]);
+  }, [animateEnter, message.id, message.role]);
 
   return (
     <Bubble
       align={message.role === "user" ? "end" : "start"}
-      className="mini-beni-chat-bubble-enter *:data-[slot=bubble-content]:h-auto *:data-[slot=bubble-content]:min-h-7 *:data-[slot=bubble-content]:overflow-visible"
+      className={
+        animateEnter
+          ? "mini-beni-chat-bubble-enter *:data-[slot=bubble-content]:h-auto *:data-[slot=bubble-content]:min-h-7 *:data-[slot=bubble-content]:overflow-visible"
+          : "*:data-[slot=bubble-content]:h-auto *:data-[slot=bubble-content]:min-h-7 *:data-[slot=bubble-content]:overflow-visible"
+      }
       pill
       size="sm"
       variant={message.role === "user" ? "blue" : "secondary"}
     >
-      <BubbleContent className="block h-auto min-h-7 max-w-full overflow-visible rounded-full py-1 whitespace-normal wrap-break-word text-left">
+      <BubbleContent className="block h-auto min-h-7 max-w-full overflow-visible py-1 whitespace-normal wrap-break-word text-left">
         {message.text}
       </BubbleContent>
     </Bubble>
@@ -289,15 +361,21 @@ function MiniBeniChatBubble({ message }: { message: ChatMessage }) {
 
 function MiniBeniChatTranscript({
   messages,
+  isTyping,
   logRef,
   fades,
   enterStyle,
+  typingStyle,
+  skipEnterIds,
   onScroll,
 }: {
   messages: ChatMessage[];
+  isTyping: boolean;
   logRef: RefObject<HTMLDivElement | null>;
   fades: TranscriptFades;
   enterStyle: MiniBeniChatBubbleEnterStyle;
+  typingStyle: MiniBeniTypingIndicatorStyle;
+  skipEnterIds: Set<string>;
   onScroll: () => void;
 }) {
   const [shellHeight, setShellHeight] = useState(0);
@@ -305,56 +383,48 @@ function MiniBeniChatTranscript({
   const showBottom = fades.bottom;
 
   useLayoutEffect(() => {
-    const log = logRef.current;
-
-    if (!log || !prefersReducedMotion()) {
-      return;
+    if (prefersReducedMotion()) {
+      setShellHeight(getTranscriptShellHeight());
     }
-
-    setShellHeight(getTranscriptShellHeight(log));
-  }, [logRef, messages]);
+  }, []);
 
   useEffect(() => {
-    const log = logRef.current;
-
-    if (!log) {
+    if (prefersReducedMotion()) {
       return;
     }
 
-    const applyHeight = () => {
-      setShellHeight(getTranscriptShellHeight(log));
-    };
-
-    if (!prefersReducedMotion()) {
-      applyHeight();
-    }
-
-    const observer = new ResizeObserver(applyHeight);
-    observer.observe(log);
-
-    return () => observer.disconnect();
-  }, [logRef, messages]);
+    setShellHeight(getTranscriptShellHeight());
+  }, []);
 
   return (
     <div
       className="t-resize relative w-full overflow-hidden"
       style={{ height: shellHeight, ...enterStyle }}
     >
-      <div className="mini-beni-chat-transcript-fades relative">
+      <div
+        className="mini-beni-chat-transcript-fades relative"
+        style={{ height: CHAT_TRANSCRIPT_HEIGHT }}
+      >
         <div
           aria-label="Chat with Beni"
           aria-live="polite"
-          className="overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="h-full overflow-x-hidden overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onScroll={onScroll}
           ref={logRef}
           role="log"
-          style={{ maxHeight: CHAT_TRANSCRIPT_MAX_HEIGHT }}
         >
-          <div className="mini-beni-chat-bubble-clip">
+          <div className="mini-beni-chat-bubble-clip" style={typingStyle}>
             <BubbleGroup className="w-full">
               {messages.map((message) => (
-                <MiniBeniChatBubble key={message.id} message={message} />
+                <MiniBeniChatBubble
+                  animateEnter={!skipEnterIds.has(message.id)}
+                  key={message.id}
+                  message={message}
+                />
               ))}
+              {isTyping ? (
+                <MiniBeniTypingIndicator style={typingStyle} />
+              ) : null}
             </BubbleGroup>
           </div>
         </div>
@@ -392,22 +462,29 @@ export function MiniBeniChatInput({
 }: MiniBeniChatInputProps) {
   const [side, setSide] = useState<PopoverSide>("top");
   const [value, setValue] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(
+    () => readMiniBeniChatSession().messages,
+  );
+  const [isTyping, setIsTyping] = useState(false);
   const [fades, setFades] = useState<TranscriptFades>({
     top: false,
     bottom: false,
   });
   const inputRef = useRef<HTMLInputElement>(null);
   const logRef = useRef<HTMLDivElement>(null);
-  const messageIdRef = useRef(0);
-  const replyIndexRef = useRef(0);
-  const replyTimersRef = useRef<number[]>([]);
+  const messageIdRef = useRef(readMiniBeniChatSession().nextId);
+  const replyAbortRef = useRef<AbortController | null>(null);
   const fadesLockedRef = useRef(false);
   const fadesUnlockTimerRef = useRef(0);
   const wasOpenRef = useRef(open);
+  const skipEnterIdsRef = useRef<Set<string>>(new Set());
   const hasTranscript = messages.length > 0;
-  const enter = useMiniBeniChatBubbleEnterDials();
-  const enterStyle = getMiniBeniChatBubbleEnterStyle(enter);
+
+  if (open && !wasOpenRef.current) {
+    skipEnterIdsRef.current = new Set(messages.map((message) => message.id));
+  }
+  const enterStyle = getMiniBeniChatBubbleEnterStyle();
+  const typingStyle = getMiniBeniTypingIndicatorStyle();
 
   const nextMessageId = () => {
     messageIdRef.current += 1;
@@ -467,6 +544,13 @@ export function MiniBeniChatInput({
       window.clearTimeout(fadesUnlockTimerRef.current);
       fadesLockedRef.current = false;
     };
+  }, [isTyping, messages]);
+
+  useEffect(() => {
+    writeMiniBeniChatSession({
+      messages,
+      nextId: messageIdRef.current,
+    });
   }, [messages]);
 
   useEffect(() => {
@@ -480,20 +564,18 @@ export function MiniBeniChatInput({
     }
 
     wasOpenRef.current = false;
-    clearReplyTimers(replyTimersRef);
+    abortReply(replyAbortRef);
     window.clearTimeout(fadesUnlockTimerRef.current);
     fadesLockedRef.current = false;
     resetMiniBeniReplyCues();
-    setMessages([]);
+    setIsTyping(false);
     setValue("");
     setFades({ top: false, bottom: false });
-    replyIndexRef.current = 0;
-    messageIdRef.current = 0;
   }, [open]);
 
   useEffect(() => {
     return () => {
-      clearReplyTimers(replyTimersRef);
+      abortReply(replyAbortRef);
       window.clearTimeout(fadesUnlockTimerRef.current);
       resetMiniBeniReplyCues();
     };
@@ -501,35 +583,68 @@ export function MiniBeniChatInput({
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    const text = value.trim();
+    const text = value.trim().slice(0, BENI_MAX_USER_CHARS);
 
     if (!text) {
       return;
     }
 
-    setMessages((current) => [
-      ...current,
-      { id: nextMessageId(), role: "user", text },
-    ]);
+    const userMessage: ChatMessage = {
+      id: nextMessageId(),
+      role: "user",
+      text,
+    };
+    const nextMessages = [...messages, userMessage];
+
+    abortReply(replyAbortRef);
+    const controller = new AbortController();
+    replyAbortRef.current = controller;
+
+    setMessages(nextMessages);
+    setIsTyping(true);
     setValue("");
     inputRef.current?.focus();
 
-    const replyIndex = replyIndexRef.current;
-    replyIndexRef.current += 1;
-    const timer = window.setTimeout(() => {
-      replyTimersRef.current = replyTimersRef.current.filter(
-        (id) => id !== timer,
-      );
-      setMessages((current) => [
-        ...current,
-        {
-          id: nextMessageId(),
-          role: "beni",
-          text: getMockBeniReply(replyIndex),
-        },
-      ]);
-    }, MOCK_BENI_REPLY_DELAY_MS);
-    replyTimersRef.current.push(timer);
+    const startedAt = Date.now();
+
+    void (async () => {
+      try {
+        const reply = await requestBeniReply(nextMessages, controller.signal);
+        const remaining = MINI_BENI_TYPING_REPLY_DELAY_MS - (Date.now() - startedAt);
+
+        if (remaining > 0) {
+          await waitWithSignal(remaining, controller.signal);
+        }
+
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setIsTyping(false);
+        await appendStaggeredBeniBubbles({
+          text: reply,
+          signal: controller.signal,
+          nextMessageId,
+          setMessages,
+        });
+      } catch (error) {
+        if (isAbortError(error) || controller.signal.aborted) {
+          return;
+        }
+
+        setIsTyping(false);
+        await appendStaggeredBeniBubbles({
+          text: BENI_FALLBACK_REPLY,
+          signal: controller.signal,
+          nextMessageId,
+          setMessages,
+        });
+      } finally {
+        if (replyAbortRef.current === controller) {
+          replyAbortRef.current = null;
+        }
+      }
+    })();
   };
 
   return (
@@ -565,9 +680,12 @@ export function MiniBeniChatInput({
           <MiniBeniChatTranscript
             enterStyle={enterStyle}
             fades={fades}
+            isTyping={isTyping}
             logRef={logRef}
             messages={messages}
             onScroll={updateFades}
+            skipEnterIds={skipEnterIdsRef.current}
+            typingStyle={typingStyle}
           />
         ) : null}
         <form onSubmit={handleSubmit}>
@@ -580,6 +698,7 @@ export function MiniBeniChatInput({
             buttonType="submit"
             className="border-border bg-popover text-foreground focus-visible:outline-focus-ring"
             id="mini-beni-chat-input"
+            maxLength={BENI_MAX_USER_CHARS}
             name="mini-beni-chat"
             onChange={(event) => setValue(event.target.value)}
             placeholder="Ask Beni.."

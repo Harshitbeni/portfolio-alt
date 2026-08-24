@@ -12,6 +12,8 @@ export const DEFAULT_NOMADS_LOCATION: NomadsLocation = {
 
 export const DEFAULT_NOMADS_USER = "harshitbeni";
 
+const NOMADS_URL = `https://nomads.com/@${DEFAULT_NOMADS_USER}`;
+
 const COUNTRY_SLUG_TO_ISO: Record<string, string> = {
   "united-states": "US",
   "united-kingdom": "GB",
@@ -55,6 +57,27 @@ function titleCase(value: string): string {
       word.length ? word[0].toUpperCase() + word.slice(1).toLowerCase() : ""
     )
     .join(" ");
+}
+
+function stripTags(value: string): string {
+  return value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function countryNameToIso(name: string): string {
+  const slug = name.trim().toLowerCase().replace(/\s+/g, "-");
+  return COUNTRY_SLUG_TO_ISO[slug] ?? "";
+}
+
+function parseNameAndRegion(rawName: string): { city: string; region: string } {
+  const [city, maybeRegion = ""] = rawName
+    .split(",")
+    .map((part) => part.trim());
+
+  if (maybeRegion.length === 2) {
+    return { city, region: maybeRegion.toUpperCase() };
+  }
+
+  return { city: city || rawName, region: "" };
 }
 
 function parseCitySlug(slug: string): { region: string; country: string } {
@@ -153,27 +176,72 @@ function extractTripsArray(html: string): Trip[] | null {
 }
 
 function pickCurrentTrip(trips: Trip[]): Trip | null {
-  if (!trips.length) {
+  const now = Math.floor(Date.now() / 1000);
+  const active = trips.filter((trip) => {
+    if (!trip.epoch_start || trip.epoch_start > now) {
+      return false;
+    }
+
+    if (trip.epoch_end && trip.epoch_end <= now) {
+      return false;
+    }
+
+    return true;
+  });
+
+  if (!active.length) {
     return null;
   }
 
-  return trips.reduce<Trip | null>((best, current) => {
-    if (!current.epoch_start) {
-      return best;
-    }
+  return active.reduce((best, current) =>
+    (current.epoch_start ?? 0) > (best.epoch_start ?? 0) ? current : best
+  );
+}
 
-    if (!best || (best.epoch_start ?? 0) < (current.epoch_start ?? 0)) {
-      return current;
-    }
+function parseCurrentTripRow(html: string): NomadsLocation | null {
+  const row = html.match(
+    /<tr[^>]*class=["'][^"']*\btrip\b[^"']*\bcurrent\b[^"']*["'][^>]*>([\s\S]*?)<\/tr>/i
+  );
 
-    return best;
-  }, null);
+  if (!row?.[1]) {
+    return null;
+  }
+
+  const nameMatch = row[1].match(
+    /<td[^>]*class=["']name["'][^>]*>[\s\S]*?<h2>([\s\S]*?)<\/h2>/i
+  );
+  const countryMatch = row[1].match(
+    /<td[^>]*class=["']country["'][^>]*>([\s\S]*?)<\/td>/i
+  );
+  const rawName = nameMatch?.[1] ? stripTags(nameMatch[1]) : "";
+
+  if (!rawName) {
+    return null;
+  }
+
+  const { city, region } = parseNameAndRegion(rawName);
+  const rawCountry = countryMatch?.[1] ? stripTags(countryMatch[1]) : "";
+
+  return {
+    city,
+    region,
+    country: countryNameToIso(rawCountry),
+  };
 }
 
 export function parseNomadsProfileHtml(
   html: string,
   fallback: NomadsLocation = DEFAULT_NOMADS_LOCATION
 ): NomadsLocation {
+  const fromRow = parseCurrentTripRow(html);
+
+  if (fromRow) {
+    return {
+      ...fromRow,
+      country: fromRow.country || fallback.country,
+    };
+  }
+
   const trips = extractTripsArray(html);
   const current = trips ? pickCurrentTrip(trips) : null;
 
@@ -204,6 +272,27 @@ export function parseNomadsProfileHtml(
   }
 
   throw new Error("Could not parse nomads.com profile");
+}
+
+export async function fetchNomadsLocation(): Promise<NomadsLocation> {
+  const response = await fetch(NOMADS_URL, {
+    headers: {
+      "user-agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      accept: "text/html",
+    },
+    cache: "force-cache",
+    next: { revalidate: 3600 },
+  });
+
+  if (!response.ok) {
+    throw new Error(`nomads.com responded ${response.status}`);
+  }
+
+  return parseNomadsProfileHtml(
+    await response.text(),
+    DEFAULT_NOMADS_LOCATION
+  );
 }
 
 export function formatNomadsLocation(location: NomadsLocation): string {

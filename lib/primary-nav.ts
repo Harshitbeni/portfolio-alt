@@ -4,12 +4,15 @@ export type PrimaryNavItem = {
   external?: boolean;
 };
 
+export const RESUME_HREF = "/cv";
+export const RESUME_PDF_HREF = "/Harshit-Beniwal-Resume.pdf";
+
 export const PRIMARY_NAV_ITEMS: PrimaryNavItem[] = [
   { href: "/#work", label: "work" },
   { href: "/about", label: "about" },
   { href: "/play", label: "play" },
   { href: "https://notes.harshitbeni.com", label: "notes", external: true },
-  { href: "/cv", label: "resume" },
+  { href: RESUME_HREF, label: "resume" },
 ];
 
 export function isNavActive(

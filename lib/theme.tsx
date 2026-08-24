@@ -4,80 +4,150 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useSyncExternalStore,
   type ReactNode,
 } from "react";
+import { usePathname } from "next/navigation";
 
-export type ThemePreference = "light" | "dark" | "system";
+import {
+  applyTimeSky,
+  clearTimeSky,
+  getTimeSkyAppearance,
+} from "@/lib/time-sky";
+
 export type Theme = "light" | "dark";
+export type Appearance = "system" | "time";
 
-const STORAGE_KEY = "theme";
-const THEME_EVENT = "theme-change";
+const APPEARANCE_KEY = "appearance";
+const APPEARANCE_CHANGE = "appearance-change";
 
-function getPreference(): ThemePreference {
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark" || stored === "system") {
-    return stored;
-  }
-  return "system";
+function getSystemTheme(): Theme {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
 }
 
-function resolveTheme(preference: ThemePreference): Theme {
-  if (preference === "system") {
-    return window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+export function getAppearance(): Appearance {
+  try {
+    return localStorage.getItem(APPEARANCE_KEY) === "time" ? "time" : "system";
+  } catch {
+    return "system";
   }
-  return preference;
 }
 
-function applyPreference(preference: ThemePreference) {
-  window.localStorage.setItem(STORAGE_KEY, preference);
-  document.documentElement.classList.toggle(
-    "dark",
-    resolveTheme(preference) === "dark"
+function isTimeActive(appearance: Appearance, pathname: string) {
+  return appearance === "time" && pathname === "/";
+}
+
+function applyTheme(theme: Theme) {
+  document.documentElement.classList.toggle("dark", theme === "dark");
+}
+
+function applyAppearance(pathname: string) {
+  const timeActive = isTimeActive(getAppearance(), pathname);
+  document.documentElement.toggleAttribute("data-time-mode", timeActive);
+
+  if (timeActive) {
+    applyTimeSky();
+    return;
+  }
+
+  clearTimeSky();
+  applyTheme(getSystemTheme());
+}
+
+function withoutColorTransitions(update: () => void) {
+  const style = document.createElement("style");
+  style.append(
+    document.createTextNode("*,*::before,*::after{transition:none !important}")
   );
-  window.dispatchEvent(new Event(THEME_EVENT));
+  document.head.append(style);
+  update();
+  void document.body.offsetHeight;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      style.remove();
+    });
+  });
 }
 
-function subscribe(onStoreChange: () => void) {
+function subscribeSystem(onStoreChange: () => void) {
   const media = window.matchMedia("(prefers-color-scheme: dark)");
-  window.addEventListener(THEME_EVENT, onStoreChange);
-  window.addEventListener("storage", onStoreChange);
-  media.addEventListener("change", onStoreChange);
+  const onChange = () => {
+    if (!isTimeActive(getAppearance(), window.location.pathname)) {
+      applyTheme(media.matches ? "dark" : "light");
+    }
+    onStoreChange();
+  };
+  media.addEventListener("change", onChange);
   return () => {
-    window.removeEventListener(THEME_EVENT, onStoreChange);
-    window.removeEventListener("storage", onStoreChange);
-    media.removeEventListener("change", onStoreChange);
+    media.removeEventListener("change", onChange);
+  };
+}
+
+function subscribeAppearance(onStoreChange: () => void) {
+  const onChange = () => onStoreChange();
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === APPEARANCE_KEY) onChange();
+  };
+  window.addEventListener(APPEARANCE_CHANGE, onChange);
+  window.addEventListener("storage", onStorage);
+  return () => {
+    window.removeEventListener(APPEARANCE_CHANGE, onChange);
+    window.removeEventListener("storage", onStorage);
   };
 }
 
 const ThemeContext = createContext<{
-  preference: ThemePreference;
   theme: Theme;
-  setPreference: (preference: ThemePreference) => void;
+  appearance: Appearance;
+  timeActive: boolean;
+  setAppearance: (appearance: Appearance) => void;
 } | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const preference = useSyncExternalStore(
-    subscribe,
-    getPreference,
+  const pathname = usePathname();
+  const appearance = useSyncExternalStore(
+    subscribeAppearance,
+    getAppearance,
     () => "system" as const
   );
-  const theme = useSyncExternalStore(
-    subscribe,
-    () => resolveTheme(getPreference()),
+  const systemTheme = useSyncExternalStore(
+    subscribeSystem,
+    getSystemTheme,
     () => "light" as const
   );
+  const timeActive = isTimeActive(appearance, pathname);
+  const theme: Theme = timeActive ? getTimeSkyAppearance() : systemTheme;
 
-  const setPreference = useCallback((next: ThemePreference) => {
-    applyPreference(next);
-  }, []);
+  useEffect(() => {
+    applyAppearance(pathname);
+  }, [pathname]);
+
+  const setAppearance = useCallback(
+    (next: Appearance) => {
+      withoutColorTransitions(() => {
+        try {
+          if (next === "time") {
+            localStorage.setItem(APPEARANCE_KEY, "time");
+          } else {
+            localStorage.removeItem(APPEARANCE_KEY);
+          }
+        } catch {
+          // Ignore storage errors (private mode, etc).
+        }
+        applyAppearance(pathname);
+      });
+      window.dispatchEvent(new Event(APPEARANCE_CHANGE));
+    },
+    [pathname]
+  );
 
   const value = useMemo(
-    () => ({ preference, theme, setPreference }),
-    [preference, theme, setPreference]
+    () => ({ theme, appearance, timeActive, setAppearance }),
+    [theme, appearance, timeActive, setAppearance]
   );
 
   return (

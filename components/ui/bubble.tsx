@@ -44,7 +44,7 @@ const bubbleVariants = cva(
         lg: "*:data-[slot=bubble-content]:h-9 *:data-[slot=bubble-content]:px-2.5 *:data-[slot=bubble-content]:text-sm",
       },
       pill: {
-        true: "*:data-[slot=bubble-content]:rounded-full",
+        true: "*:data-[slot=bubble-content]:rounded-[14px]",
       },
     },
     defaultVariants: {
@@ -65,7 +65,7 @@ function Bubble({
 }: React.ComponentProps<"div"> &
   VariantProps<typeof bubbleVariants> & {
     align?: "start" | "end"
-    /** Capsule ends. Default is 6px corners (`--radius`). */
+    /** 14px corners. Default is 6px (`--radius`). */
     pill?: boolean
   }) {
   return (

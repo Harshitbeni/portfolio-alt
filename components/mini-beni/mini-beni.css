@@ -51,6 +51,58 @@
   height: 0;
 }
 
+[data-nav-card-avatar] {
+  flex: 0 0 auto;
+  overflow: visible;
+  transition:
+    width var(--mini-beni-text-move-ms) var(--ease-smooth-out),
+    height var(--mini-beni-text-move-ms) var(--ease-smooth-out),
+    min-width var(--mini-beni-text-move-ms) var(--ease-smooth-out),
+    min-height var(--mini-beni-text-move-ms) var(--ease-smooth-out);
+}
+
+[data-mini-beni-profile-link] [data-nav-card-avatar] {
+  overflow: visible;
+}
+
+[data-mini-beni-reveal="revealing"] [data-nav-card-avatar],
+[data-mini-beni-reveal="free"] [data-nav-card-avatar] {
+  width: 0;
+  height: 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+[data-nav-card-chevron] {
+  transition: opacity var(--mini-beni-profile-fade-ms) var(--ease-in-out);
+}
+
+[data-mini-beni-reveal="revealing"] [data-nav-card-chevron],
+[data-mini-beni-reveal="free"] [data-nav-card-chevron] {
+  opacity: 0;
+}
+
+.mini-beni-nav-avatar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: block;
+  width: var(--mini-beni-nav-width);
+  height: var(--mini-beni-nav-height);
+  pointer-events: none;
+  background-color: transparent;
+  background-image: var(--mini-beni-sprite);
+  background-position: var(--mini-beni-frame-x) var(--mini-beni-frame-y);
+  background-repeat: no-repeat;
+  background-size: 800% 1100%;
+  transform: translate(
+    calc(-50% + var(--mini-beni-nav-offset-x)),
+    calc(-50% + var(--mini-beni-nav-offset-y))
+  );
+  will-change: background-position, transform;
+}
+
 .mini-beni {
   position: fixed;
   z-index: 100;
@@ -84,19 +136,9 @@
   will-change: transform, background-position, opacity;
 }
 
-.mini-beni:focus {
-  outline: none;
-}
-
+.mini-beni:focus,
 .mini-beni:focus-visible {
-  outline: 2px solid var(--focus-ring);
-  outline-offset: 2px;
-}
-
-@media (forced-colors: active) {
-  .mini-beni:focus-visible {
-    outline-color: Highlight;
-  }
+  outline: none;
 }
 
 .mini-beni[data-reveal-state="revealing"] {
@@ -127,10 +169,26 @@
   z-index: 1;
 }
 
-/* Clip bubble filter/transform ink so it cannot inflate the log's scrollHeight. */
+/* Clip bubble filter/transform ink so it cannot inflate the log's scrollHeight.
+   Bottom padding matches the typing tail overhang so message bubbles and the
+   indicator body share the same baseline; the tail sits in this space. */
 .mini-beni-chat-bubble-clip {
+  --mini-beni-chat-tail-space: max(
+    0px,
+    calc(
+      var(--mini-beni-typing-tail-large-size, 10px) +
+        var(--mini-beni-typing-tail-small-size, 6px) +
+        var(--mini-beni-typing-tail-gap, 0px) -
+        var(--mini-beni-typing-tail-offset-y, 8px)
+    )
+  );
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100%;
   overflow: clip;
   contain: paint;
+  padding-bottom: var(--mini-beni-chat-tail-space);
 }
 
 .mini-beni-chat-bubble-enter {
@@ -150,14 +208,149 @@
   }
 }
 
+.mini-beni-typing-indicator {
+  position: relative;
+  width: fit-content;
+  align-self: flex-start;
+}
+
+.mini-beni-typing-indicator-body {
+  position: relative;
+  width: fit-content;
+  transform-origin: center center;
+  animation: mini-beni-typing-bubble-breathe
+    var(--mini-beni-typing-breath-duration, 2000ms) ease-in-out infinite;
+  will-change: transform;
+}
+
+.mini-beni-typing-indicator-bubble {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--mini-beni-typing-dot-gap, 4px);
+  height: var(--mini-beni-typing-bubble-height, 28px);
+  padding-inline: var(--mini-beni-typing-padding-x, 12px);
+  border-radius: 9999px;
+  background-color: var(--secondary);
+  color: var(--secondary-foreground);
+}
+
+@keyframes mini-beni-typing-bubble-breathe {
+  0%,
+  100% {
+    transform: scale(var(--mini-beni-typing-breath-min-scale, 1));
+  }
+
+  50% {
+    transform: scale(var(--mini-beni-typing-breath-max-scale, 1.05));
+  }
+}
+
+.mini-beni-typing-indicator-dot {
+  flex: 0 0 auto;
+  width: var(--mini-beni-typing-dot-size, 6px);
+  height: var(--mini-beni-typing-dot-size, 6px);
+  border-radius: 9999px;
+  background-color: var(--gray-8);
+  opacity: var(--mini-beni-typing-dot-inactive-opacity, 0.45);
+  animation: mini-beni-typing-dot-dissolve
+    var(--mini-beni-typing-cycle-duration, 2000ms) ease-in-out infinite;
+}
+
+.mini-beni-typing-indicator-dot:nth-child(1) {
+  animation-delay: 0ms;
+}
+
+.mini-beni-typing-indicator-dot:nth-child(2) {
+  animation-delay: calc(
+    var(--mini-beni-typing-cycle-duration, 2000ms) / 3 *
+      (1 - var(--mini-beni-typing-dot-stagger-overlap, 0.6))
+  );
+}
+
+.mini-beni-typing-indicator-dot:nth-child(3) {
+  animation-delay: calc(
+    var(--mini-beni-typing-cycle-duration, 2000ms) / 3 *
+      (1 - var(--mini-beni-typing-dot-stagger-overlap, 0.6)) * 2
+  );
+}
+
+@keyframes mini-beni-typing-dot-dissolve {
+  0% {
+    background-color: var(--gray-8);
+    opacity: var(--mini-beni-typing-dot-inactive-opacity, 0.45);
+    transform: scale(1);
+  }
+
+  16.67% {
+    background-color: var(--gray-11);
+    opacity: 1;
+    transform: scale(var(--mini-beni-typing-dot-active-scale, 1.15));
+  }
+
+  33.33%,
+  100% {
+    background-color: var(--gray-8);
+    opacity: var(--mini-beni-typing-dot-inactive-opacity, 0.45);
+    transform: scale(1);
+  }
+}
+
+.mini-beni-typing-indicator-tail {
+  position: absolute;
+  border-radius: 9999px;
+  background-color: var(--secondary);
+  pointer-events: none;
+}
+
+.mini-beni-typing-indicator-tail-large {
+  width: var(--mini-beni-typing-tail-large-size, 6px);
+  height: var(--mini-beni-typing-tail-large-size, 6px);
+  left: var(--mini-beni-typing-tail-offset-x, -4px);
+  bottom: calc(
+    var(--mini-beni-typing-tail-offset-y, 2px) -
+      var(--mini-beni-typing-tail-large-size, 6px)
+  );
+}
+
+.mini-beni-typing-indicator-tail-small {
+  width: var(--mini-beni-typing-tail-small-size, 4px);
+  height: var(--mini-beni-typing-tail-small-size, 4px);
+  left: calc(
+    var(--mini-beni-typing-tail-offset-x, -4px) -
+      var(--mini-beni-typing-tail-small-size, 4px) -
+      var(--mini-beni-typing-tail-gap, 2px)
+  );
+  bottom: calc(
+    var(--mini-beni-typing-tail-offset-y, 2px) -
+      var(--mini-beni-typing-tail-large-size, 6px) -
+      var(--mini-beni-typing-tail-small-size, 4px) -
+      var(--mini-beni-typing-tail-gap, 2px)
+  );
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mini-beni,
   [data-mini-beni-profile-circle],
-  [data-mini-beni-profile-link] {
+  [data-mini-beni-profile-link],
+  [data-nav-card-avatar],
+  [data-nav-card-chevron] {
     transition: none;
   }
 
   .mini-beni-chat-bubble-enter {
     animation: none !important;
+  }
+
+  .mini-beni-typing-indicator-dot {
+    animation: none;
+    background-color: var(--gray-8);
+    opacity: var(--mini-beni-typing-dot-inactive-opacity, 0.45);
+    transform: none;
+  }
+
+  .mini-beni-typing-indicator-body {
+    animation: none;
+    transform: none;
   }
 }

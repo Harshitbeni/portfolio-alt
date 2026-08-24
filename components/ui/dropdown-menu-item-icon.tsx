@@ -9,10 +9,12 @@ export type DropdownMenuItemWithIconProps = ComponentProps<
   typeof DropdownMenuItem
 > & {
   icon?: IconName;
+  iconClassName?: string;
 };
 
 export function DropdownMenuItemWithIcon({
   icon,
+  iconClassName,
   children,
   ...props
 }: DropdownMenuItemWithIconProps) {
@@ -21,7 +23,7 @@ export function DropdownMenuItemWithIcon({
 
   return (
     <DropdownMenuItem {...props}>
-      {Icon ? <Icon strokeWidth={1.5} /> : null}
+      {Icon ? <Icon className={iconClassName} strokeWidth={1.5} /> : null}
       {children}
     </DropdownMenuItem>
   );

@@ -23,7 +23,6 @@ Start small. Add colors and components only when asked.
 - **Font:** Inter variable via `next/font/google` (`--font-inter`). Do not pass a `weight` array to `next/font`.
 - **Icons:** Central Icons (`@central-icons-react/all`) through `IconProvider` in `lib/icon-context.tsx`. Use `useIcon("plus")` (and the other named slots) instead of Lucide. Default style is round / outlined / radius 1 / stroke 1.5. Installing the package requires `CENTRAL_LICENSE_KEY` in the environment (see `.env.example`); never put the key in source or this file. Skill: `.agents/skills/central-icons`
 - **Playground:** `/playground` is for live, session-only token and component tweaks. It does not write CSS files.
-- **Corners:** Every visible rounded corner uses Lisse squircles (`@lisse/react`, Apple smoothing 0.65). Keep the radius token/class; apply `useLisse` / `LisseMotion` / `applyLisseClip`. Skill: `.agents/skills/lisse`
 
 ## Dev tools
 
@@ -33,14 +32,6 @@ Start small. Add colors and components only when asked.
 - Mounted from `components/agentation-dev-toolbar.tsx` in `app/layout.tsx`
 - Visible by default in `next dev`; omitted from production
 - Skill: `.agents/skills/agentation`
-
-### DialKit (installed, unused)
-
-- Packages: `dialkit`, `motion` (dev dependencies)
-- **Do not use DialKit until the user explicitly asks**
-- Do not mount `DialRoot` or import `useDialKit` on your own
-- The playground is not DialKit
-- Skill: `.agents/skills/dialkit` (`disable-model-invocation`)
 
 ## Interaction libraries (installed, unused until asked)
 

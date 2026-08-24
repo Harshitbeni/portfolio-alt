@@ -12,11 +12,11 @@ description: >-
 
 Generate DialKit configurations for React + Motion projects — live control panels for tuning animation and style values in real time.
 
-This project already has `dialkit` and `motion` installed as **devDependencies**. DialKit is **not mounted**. Do not import `useDialKit` or `DialRoot` until the user explicitly asks.
+This project does **not** currently have `dialkit` installed. Do not import `useDialKit` or `DialRoot` until the user explicitly asks.
 
 ## When asked to enable DialKit
 
-1. Confirm `dialkit` and `motion` are in `package.json` (already installed).
+1. Install `dialkit` as a devDependency (`npm install -D dialkit`). Confirm `motion` is in `package.json`.
 2. Add `DialRoot` once, in a development-only client wrapper (same `NODE_ENV` guard as Agentation):
 
 ```tsx

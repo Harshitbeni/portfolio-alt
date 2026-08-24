@@ -13,7 +13,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NavCardExpandPanel } from "@/components/nav-card-expand";
 import { MiniBeni } from "@/components/mini-beni/MiniBeni";
-import { MINI_BENI_PROFILE_ALT } from "@/components/mini-beni/reveal-core";
+import { MiniBeniNavAvatar } from "@/components/mini-beni/mini-beni-nav-avatar";
 import { navCardIcons } from "@/lib/icon-context";
 import {
   DEFAULT_NOMADS_LOCATION,
@@ -23,7 +23,6 @@ import {
 import { cn } from "@/lib/utils";
 
 const DEFAULT_NAME = "Harshit Beniwal";
-const DEFAULT_IMAGE = "/nav-card/avatar.webp";
 const DEFAULT_LOCATION = formatNomadsLocation(DEFAULT_NOMADS_LOCATION);
 const DEFAULT_HREF = "/";
 const LOADING_LOCATION = "Loading location...";
@@ -36,6 +35,7 @@ const iconSlotTransitionClassName =
   "transition-opacity [transition-duration:var(--resize-dur)] [transition-timing-function:var(--resize-ease)] motion-reduce:transition-none";
 
 const ExpandIcon = navCardIcons.expand;
+const ChevronDownIcon = navCardIcons.chevronDown;
 
 export type NavCardVariant = "full" | "compact";
 
@@ -43,7 +43,6 @@ export type NavCardProps = {
   name?: string;
   location?: string;
   liveLocation?: boolean;
-  imageSrc?: string;
   href?: string;
   variant?: NavCardVariant;
   expandable?: boolean;
@@ -53,7 +52,6 @@ export function NavCard({
   name = DEFAULT_NAME,
   location = DEFAULT_LOCATION,
   liveLocation = true,
-  imageSrc = DEFAULT_IMAGE,
   href = DEFAULT_HREF,
   variant = "full",
   expandable = false,
@@ -63,7 +61,6 @@ export function NavCard({
   const sizerRef = useRef<HTMLDivElement>(null);
   const circleRef = useRef<HTMLButtonElement>(null);
   const textRef = useRef<HTMLAnchorElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
   const [textWidth, setTextWidth] = useState(0);
   const [collapsedWidth, setCollapsedWidth] = useState(0);
   const [collapsedHeight, setCollapsedHeight] = useState(0);
@@ -81,7 +78,6 @@ export function NavCard({
       circleRef,
       linkRef: cardRef,
       textRef,
-      imageRef,
     }),
     []
   );
@@ -261,7 +257,7 @@ export function NavCard({
           hasResizeSizes ? null : "w-max",
           isExpanded ? "bg-gray-1 shadow-4" : "hover:bg-gray-a3"
         )
-      : "w-max max-w-full items-center px-2 py-1"
+      : "w-max max-w-full items-center py-1 pl-1 pr-2"
   );
 
   const profile = (
@@ -272,25 +268,30 @@ export function NavCard({
       <button
         ref={circleRef}
         type="button"
+        data-nav-card-avatar=""
         aria-label="Reveal Mini Beni"
-        className={cn(
-          "relative size-8 shrink-0 overflow-hidden rounded-full border border-gray-a6 bg-transparent p-0",
-          focusRingClassName
-        )}
+        className="group/avatar relative h-8 w-[34px] shrink-0 appearance-none overflow-visible border-0 bg-transparent p-0"
       >
-        {/* Mini Beni reveal needs a real img node for embedded profile refs. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          ref={imageRef}
-          src={imageSrc}
-          alt={MINI_BENI_PROFILE_ALT}
-          width={32}
-          height={32}
-          decoding="async"
-          draggable={false}
-          className="pointer-events-none block size-full rounded-[inherit] object-cover object-center"
+        <span
+          className={cn(
+            "relative block size-8 overflow-hidden rounded-full border border-gray-a6",
+            focusRingClassName
+          )}
+        >
+          <MiniBeniNavAvatar />
+        </span>
+        <span
+          data-nav-card-chevron=""
           aria-hidden="true"
-        />
+          className={cn(
+            "nav-card-chevron-shimmer absolute right-0 bottom-0 z-10 flex size-3 origin-bottom-right items-center justify-center overflow-hidden rounded-full bg-gray-12 text-gray-1",
+            "transition-[scale] [transition-duration:var(--resize-dur)] [transition-timing-function:var(--resize-ease)]",
+            "group-hover/avatar:scale-110",
+            "motion-reduce:transition-none motion-reduce:group-hover/avatar:scale-100"
+          )}
+        >
+          <ChevronDownIcon size={12} strokeWidth={1.5} />
+        </span>
       </button>
       <Link
         ref={textRef}
@@ -366,7 +367,7 @@ export function NavCard({
               "pointer-events-none invisible flex w-max items-center gap-2 p-1"
             )}
           >
-            <span className="size-8 shrink-0" />
+            <span className="h-8 w-[34px] shrink-0" />
             {isCompact ? null : (
               <span className="flex flex-col items-start">
                 <span className="m-0 whitespace-nowrap text-xxs font-semibold leading-[1.333] tracking-[-0.01em]">

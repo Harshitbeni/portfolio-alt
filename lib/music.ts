@@ -104,13 +104,13 @@ function dayKey({ year, month, day }: ReturnType<typeof dateParts>) {
 function weekStartKey(date: Date) {
   const parts = dateParts(date);
   const offset: Record<string, number> = {
-    Mon: 0,
-    Tue: 1,
-    Wed: 2,
-    Thu: 3,
-    Fri: 4,
-    Sat: 5,
-    Sun: 6,
+    Sun: 0,
+    Mon: 1,
+    Tue: 2,
+    Wed: 3,
+    Thu: 4,
+    Fri: 5,
+    Sat: 6,
   };
   const shifted = new Date(Date.UTC(parts.year, parts.month - 1, parts.day));
 
@@ -345,12 +345,6 @@ export async function getMusicLibrary(): Promise<MusicTrack[]> {
 export async function getMusicPreview(): Promise<MusicPreview | null> {
   try {
     const redis = getRedis();
-    const preview = await redis.get<StoredMusicPreview>(MUSIC_PREVIEW_KEY);
-
-    if (preview?.sections?.length) {
-      return preview;
-    }
-
     const stored = await redis.get<StoredMusicLibrary>(MUSIC_LIBRARY_KEY);
 
     if (!stored?.tracks.length) {

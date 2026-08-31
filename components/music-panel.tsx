@@ -1,9 +1,29 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  AnimatePresence,
+  LayoutGroup,
+  motion,
+  useReducedMotion,
+} from "motion/react";
 import { MusicRow } from "@/components/music-row";
 import { useMusicCache, warmMusicLibrary, watchNowPlaying } from "@/lib/music-client-cache";
 import type { MusicSection, MusicTrack } from "@/lib/music";
+
+/* ─────────────────────────────────────────────────────────
+ * ANIMATION STORYBOARD
+ *
+ * Now-playing identity change (not first paint):
+ *
+ *    0ms   previous now-playing row fades out in place
+ *    0ms   same track fades in at the top of Today
+ *    0ms   Today rows shift down to make room
+ *    0ms   new now-playing row staggers in (blur + 12px rise)
+ *  150ms   previous now-playing fade settles
+ *  280ms   Today row shift settles
+ *  600ms   new now-playing stagger completes
+ * ───────────────────────────────────────────────────────── */
 
 const MUSIC_PAGE_SIZE = 50;
 const MUSIC_LOAD_AHEAD_PX = 480;
@@ -11,10 +31,92 @@ const MUSIC_PRIORITY_COVERS = 8;
 const MUSIC_SKELETON_MIN_HEIGHT = 264;
 const MUSIC_BULK_NEW_TRACK_THRESHOLD = 8;
 
+const ROW_LAYOUT = {
+  layout: {
+    duration: 0.28,
+    ease: [0.22, 1, 0.36, 1] as const,
+  },
+};
+
+const ROW_FADE = {
+  duration: 0.2,
+  ease: [0.22, 1, 0.36, 1] as const,
+};
+
+const ROW_EXIT = {
+  opacity: 0,
+  position: "absolute" as const,
+  top: 0,
+  left: 0,
+  right: 0,
+};
+
+const ROW_EXIT_TRANSITION = {
+  duration: 0.15,
+  ease: [0.4, 0, 1, 1] as const,
+};
+
 let cachedVisibleCount = MUSIC_PAGE_SIZE;
 const seenMusicTrackIds = new Set<string>();
 let musicTracksSeeded = false;
 let revealedNowPlayingId: string | null = null;
+let nowPlayingHeadingRevealed = false;
+let previousNowPlayingId: string | null = null;
+let lastDepartedNowPlayingId: string | null = null;
+const revealedLibraryTrackIds = new Map<string, string[]>();
+
+function trackIds(tracks: MusicTrack[]) {
+  return tracks.map((track) => track.id);
+}
+
+function isTrackListAppend(previousIds: string[] | undefined, nextIds: string[]) {
+  if (!previousIds?.length) return false;
+  if (nextIds.length <= previousIds.length) return false;
+  return previousIds.every((id, index) => nextIds[index] === id);
+}
+
+function isTrackListPrepend(
+  previousIds: string[] | undefined,
+  nextIds: string[],
+) {
+  if (!previousIds?.length) return false;
+  if (nextIds.length <= previousIds.length) return false;
+
+  const offset = nextIds.length - previousIds.length;
+  return previousIds.every((id, index) => nextIds[index + offset] === id);
+}
+
+function isTrackListRemoval(
+  previousIds: string[] | undefined,
+  nextIds: string[],
+) {
+  if (!previousIds?.length || !nextIds.length) return false;
+  if (nextIds.length >= previousIds.length) return false;
+
+  let index = 0;
+
+  for (const id of previousIds) {
+    if (id === nextIds[index]) {
+      index += 1;
+      if (index === nextIds.length) return true;
+    }
+  }
+
+  return false;
+}
+
+function rememberNowPlayingChange(nowPlayingId: string | null) {
+  if (previousNowPlayingId === nowPlayingId) {
+    return;
+  }
+
+  if (previousNowPlayingId) {
+    lastDepartedNowPlayingId = previousNowPlayingId;
+    seenMusicTrackIds.add(previousNowPlayingId);
+  }
+
+  previousNowPlayingId = nowPlayingId;
+}
 
 function seedSeenMusicTracks(sections: MusicSection[]) {
   for (const section of sections) {
@@ -92,44 +194,175 @@ function playStagger(block: HTMLElement | null) {
   block.classList.add("is-shown");
 }
 
-function NowPlayingSection({
+function TrackRow({
   track,
   priority,
+  spinning = false,
+  reveal = false,
+  fadeIn = false,
+  shareLayout = true,
+  reduceMotion,
 }: {
   track: MusicTrack;
   priority: boolean;
+  spinning?: boolean;
+  reveal?: boolean;
+  fadeIn?: boolean;
+  shareLayout?: boolean;
+  reduceMotion: boolean;
 }) {
-  const alreadyRevealed = revealedNowPlayingId === track.id;
-  const rootRef = useRef<HTMLElement>(null);
-
-  useLayoutEffect(() => {
-    if (alreadyRevealed) return;
-
-    playStagger(rootRef.current);
-    revealedNowPlayingId = track.id;
-  }, [alreadyRevealed, track.id]);
+  const layoutEnabled = !reduceMotion && shareLayout && !reveal && !fadeIn;
 
   return (
-    <section
-      ref={rootRef}
-      aria-labelledby="music-nowplaying"
-      className={`t-stagger pb-6${alreadyRevealed ? " is-shown" : ""}`}
+    <motion.div
+      layout={layoutEnabled ? "position" : false}
+      initial={fadeIn && !reduceMotion ? { opacity: 0 } : false}
+      animate={{ opacity: 1 }}
+      exit={reduceMotion ? { opacity: 0 } : ROW_EXIT}
+      transition={
+        reduceMotion
+          ? { duration: 0 }
+          : fadeIn
+            ? ROW_FADE
+            : shareLayout
+              ? ROW_LAYOUT
+              : ROW_EXIT_TRANSITION
+      }
+      className="relative w-full min-w-0"
     >
+      <MusicRow
+        track={track}
+        priority={priority}
+        spinning={spinning}
+        reveal={reveal}
+      />
+    </motion.div>
+  );
+}
+
+function NowPlayingSection({
+  track,
+  priority,
+  reduceMotion,
+}: {
+  track: MusicTrack;
+  priority: boolean;
+  reduceMotion: boolean;
+}) {
+  const headingRevealed = nowPlayingHeadingRevealed;
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const revealIncoming = revealedNowPlayingId !== track.id;
+
+  useLayoutEffect(() => {
+    if (!headingRevealed) {
+      playStagger(headingRef.current);
+      nowPlayingHeadingRevealed = true;
+    }
+
+    revealedNowPlayingId = track.id;
+  }, [headingRevealed, track.id]);
+
+  return (
+    <section aria-labelledby="music-nowplaying" className="pb-6">
       <h2
+        ref={headingRef}
         id="music-nowplaying"
-        className="t-stagger-line t-stagger-line--1 mb-6 text-xs leading-4 font-medium text-gray-a10"
+        className={`t-stagger mb-6 text-xs leading-4 font-medium text-gray-a10${
+          headingRevealed ? " is-shown" : ""
+        }`}
       >
-        <span className="inline-flex items-center">
-          <NowPlayingWaveform />
-          Now playing
+        <span className="t-stagger-line t-stagger-line--1">
+          <span className="inline-flex items-center">
+            <NowPlayingWaveform />
+            Now playing
+          </span>
         </span>
       </h2>
-      <div className="t-stagger-line t-stagger-line--2">
-        <MusicRow
-          track={track}
-          priority={priority}
-          spinning
-        />
+      <div className="relative">
+        <AnimatePresence initial={false} mode="popLayout">
+          <TrackRow
+            key={track.id}
+            track={track}
+            priority={priority}
+            spinning
+            shareLayout={false}
+            reveal={revealIncoming}
+            reduceMotion={reduceMotion}
+          />
+        </AnimatePresence>
+      </div>
+    </section>
+  );
+}
+
+function LibrarySection({
+  section,
+  enteringIds,
+  tracks,
+  reduceMotion,
+}: {
+  section: MusicSection;
+  enteringIds: Set<string>;
+  tracks: Array<{ track: MusicTrack; priority: boolean }>;
+  reduceMotion: boolean;
+}) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+  const nextIds = trackIds(tracks.map(({ track }) => track));
+  const nextKey = nextIds.join("\0");
+  const previousIds = revealedLibraryTrackIds.get(section.id);
+  const pagination = isTrackListAppend(previousIds, nextIds);
+  const arrivingFromNowPlaying =
+    lastDepartedNowPlayingId !== null &&
+    nextIds[0] === lastDepartedNowPlayingId;
+  const alreadyRevealed =
+    previousIds !== undefined
+      ? previousIds.join("\0") === nextKey ||
+        pagination ||
+        isTrackListPrepend(previousIds, nextIds) ||
+        isTrackListRemoval(previousIds, nextIds)
+      : arrivingFromNowPlaying;
+
+  useLayoutEffect(() => {
+    revealedLibraryTrackIds.set(section.id, nextIds);
+
+    if (pagination || alreadyRevealed) return;
+
+    playStagger(headingRef.current);
+  }, [alreadyRevealed, nextIds, nextKey, pagination, section.id]);
+
+  return (
+    <section aria-labelledby={`music-${section.id}`} className="pb-6">
+      <motion.h2
+        layout={!reduceMotion ? "position" : false}
+        transition={ROW_LAYOUT}
+        ref={headingRef}
+        id={`music-${section.id}`}
+        className={`t-stagger mb-6 text-xs leading-4 font-medium text-gray-a10${
+          alreadyRevealed ? " is-shown" : ""
+        }`}
+      >
+        <span className="t-stagger-line t-stagger-line--1">
+          {section.label}
+        </span>
+      </motion.h2>
+      <div className="flex flex-col gap-6">
+        {tracks.map(({ track, priority }) => (
+          <TrackRow
+            key={track.id}
+            track={track}
+            priority={priority}
+            reveal={
+              pagination
+                ? enteringIds.has(track.id)
+                : !alreadyRevealed
+            }
+            fadeIn={
+              track.id === lastDepartedNowPlayingId &&
+              !previousIds?.includes(track.id)
+            }
+            reduceMotion={reduceMotion}
+          />
+        ))}
       </div>
     </section>
   );
@@ -144,6 +377,7 @@ function MusicList({
   visibleCount: number;
   enteringIds: Set<string>;
 }) {
+  const reduceMotion = Boolean(useReducedMotion());
   const visibleSections = visibleMusicSections(sections, visibleCount);
   let coverIndex = 0;
 
@@ -154,59 +388,47 @@ function MusicList({
   }, [enteringIds]);
 
   return (
-    <div className="flex w-full flex-col gap-6">
-      {visibleSections.map((section) => {
-        if (section.id === "nowplaying") {
-          const track = section.tracks[0];
+    <LayoutGroup id="music-tracks">
+      <div className="flex w-full flex-col gap-6">
+        {visibleSections.map((section) => {
+          if (section.id === "nowplaying") {
+            const track = section.tracks[0];
 
-          if (!track) {
-            return null;
+            if (!track) {
+              return null;
+            }
+
+            const priority = coverIndex < MUSIC_PRIORITY_COVERS;
+            coverIndex += 1;
+
+            return (
+              <NowPlayingSection
+                key={section.id}
+                track={track}
+                priority={priority}
+                reduceMotion={reduceMotion}
+              />
+            );
           }
 
-          const priority = coverIndex < MUSIC_PRIORITY_COVERS;
-          coverIndex += 1;
+          const tracks = section.tracks.map((track) => {
+            const priority = coverIndex < MUSIC_PRIORITY_COVERS;
+            coverIndex += 1;
+            return { track, priority };
+          });
 
           return (
-            <NowPlayingSection
+            <LibrarySection
               key={section.id}
-              track={track}
-              priority={priority}
+              section={section}
+              enteringIds={enteringIds}
+              tracks={tracks}
+              reduceMotion={reduceMotion}
             />
           );
-        }
-
-        return (
-          <section
-            key={section.id}
-            aria-labelledby={`music-${section.id}`}
-            className="pb-6"
-          >
-            <h2
-              id={`music-${section.id}`}
-              className="mb-6 text-xs leading-4 font-medium text-gray-a10"
-            >
-              {section.label}
-            </h2>
-            <div className="flex flex-col gap-6">
-              {section.tracks.map((track) => {
-                const priority = coverIndex < MUSIC_PRIORITY_COVERS;
-                coverIndex += 1;
-                const reveal = enteringIds.has(track.id);
-
-                return (
-                  <MusicRow
-                    key={track.id}
-                    track={track}
-                    priority={priority}
-                    reveal={reveal}
-                  />
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
-    </div>
+        })}
+      </div>
+    </LayoutGroup>
   );
 }
 
@@ -309,6 +531,11 @@ export function MusicPanel() {
       </p>
     );
   }
+
+  const nowPlayingId =
+    sections.find((section) => section.id === "nowplaying")?.tracks[0]?.id ??
+    null;
+  rememberNowPlayingChange(nowPlayingId);
 
   return (
     <>

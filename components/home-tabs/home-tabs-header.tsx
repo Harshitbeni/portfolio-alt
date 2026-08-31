@@ -28,6 +28,7 @@ import {
   type HomeTab,
   type OtherTab,
 } from "@/components/home-tabs/constants";
+import { OthersNowPlayingNotes } from "@/components/home-tabs/others-now-playing-notes";
 import { useMobileStackActive } from "@/components/home-tabs/use-mobile-stack-active";
 import { useIcon } from "@/lib/icon-context";
 import { cn } from "@/lib/utils";
@@ -51,8 +52,6 @@ export type HomeTabsHeaderProps = {
   tabsListRef: RefObject<HTMLDivElement | null>;
   pillRef: RefObject<HTMLSpanElement | null>;
   tabsBarRef?: RefObject<HTMLDivElement | null>;
-  scrollPositionsRef: MutableRefObject<Partial<Record<string, number>>>;
-  getScrollKey: (mainTab: HomeTab, subTab: OtherTab) => string;
   onSelectTab: (nextTab: HomeTab, nextOtherTab?: OtherTab) => void;
   tabChangeGuardRef?: MutableRefObject<(nextTab: HomeTab) => boolean>;
 };
@@ -65,8 +64,6 @@ export function HomeTabsHeader({
   tabsListRef,
   pillRef,
   tabsBarRef: tabsBarRefProp,
-  scrollPositionsRef,
-  getScrollKey,
   onSelectTab,
   tabChangeGuardRef,
 }: HomeTabsHeaderProps) {
@@ -160,7 +157,6 @@ export function HomeTabsHeader({
   const handleOtherSubtabSelect = (value: OtherTab) => {
     if (tab === "others" && otherTab === value) {
       scrollPageToTop();
-      scrollPositionsRef.current[getScrollKey(tab, otherTab)] = 0;
       setOthersMenuOpen(false);
       return;
     }
@@ -192,7 +188,6 @@ export function HomeTabsHeader({
         onClick={() => {
           if (item.value === tab) {
             scrollPageToTop();
-            scrollPositionsRef.current[getScrollKey(tab, otherTab)] = 0;
           }
         }}
       >
@@ -223,57 +218,69 @@ export function HomeTabsHeader({
         } as CSSProperties)
       : undefined;
 
+  const handleOthersMenuOpenChange = (open: boolean) => {
+    setOthersMenuOpen(open);
+  };
+
+  const othersDropdownLabel =
+    tab === "others"
+      ? (OTHER_TABS.find((item) => item.value === otherTab)?.label ?? "Others")
+      : "Others";
+
   const othersDropdownTrigger = (
-    <DropdownMenuTrigger asChild>
-      <button
-        type="button"
-        data-state={tab === "others" ? "active" : "inactive"}
-        className={cn(
-          tabsTriggerStyles,
-          "t-tab !flex-none shrink-0",
-          othersTriggerClassName,
-        )}
-        onClick={() => {
-          if (tab === "others") {
-            scrollPageToTop();
-            scrollPositionsRef.current[getScrollKey(tab, otherTab)] = 0;
+    <div className="relative inline-flex shrink-0 overflow-visible">
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          data-active={tab === "others" ? "true" : undefined}
+          aria-label={
+            tab === "others" ? `Others: ${othersDropdownLabel}` : "Others"
           }
-        }}
-      >
-        <span>Others</span>
-        <ChevronDown
-          size={14}
           className={cn(
-            "shrink-0 text-current transition-transform duration-200 ease-out",
-            othersMenuOpen && "rotate-180",
+            tabsTriggerStyles,
+            "t-tab !flex-none shrink-0",
           )}
-          aria-hidden
-        />
-      </button>
-    </DropdownMenuTrigger>
+        >
+          <span>{othersDropdownLabel}</span>
+          <ChevronDown
+            size={14}
+            className={cn(
+              "shrink-0 text-current transition-transform duration-200 ease-out",
+              othersMenuOpen && "rotate-180",
+            )}
+            aria-hidden
+          />
+        </button>
+      </DropdownMenuTrigger>
+      <OthersNowPlayingNotes active={tab !== "others"} />
+    </div>
   );
 
   const othersInlineGroup = (
     <div className="home-tabs-others-group inline-flex shrink-0 items-center">
-      <TabsTrigger
-        value="others"
-        className={`t-tab ${othersTriggerClassName} ${
+      <div
+        className={`relative inline-flex shrink-0 overflow-visible ${
           tab === "others" ? "mr-[-6px]" : ""
         }`}
-        onClick={() => {
-          if (isMobileStackActive && tab === "others" && mainTabsRevealed) {
-            collapseOthersStack();
-            return;
-          }
-
-          if (tab === "others") {
-            scrollPageToTop();
-            scrollPositionsRef.current[getScrollKey(tab, otherTab)] = 0;
-          }
-        }}
       >
-        Others
-      </TabsTrigger>
+        <TabsTrigger
+          value="others"
+          className={`t-tab ${othersTriggerClassName}`}
+          onClick={() => {
+            if (isMobileStackActive && tab === "others" && mainTabsRevealed) {
+              collapseOthersStack();
+              return;
+            }
+
+            if (tab === "others") {
+              scrollPageToTop();
+            }
+          }}
+        >
+          Others
+        </TabsTrigger>
+        <OthersNowPlayingNotes active={tab !== "others"} />
+      </div>
       <div
         aria-label="Other sections"
         className="t-resize home-other-tabs -ml-[30px]"
@@ -316,7 +323,7 @@ export function HomeTabsHeader({
         <DropdownMenu
           modal={false}
           open={othersMenuOpen}
-          onOpenChange={setOthersMenuOpen}
+          onOpenChange={handleOthersMenuOpenChange}
         >
           <div
             className="group/tabs-list inline-flex w-full flex-wrap items-start gap-3"
@@ -337,7 +344,7 @@ export function HomeTabsHeader({
             </TabsList>
             {othersDropdownTrigger}
           </div>
-          <DropdownMenuContent align="start" className="min-w-32">
+          <DropdownMenuContent align="start" className="z-[60] min-w-32">
             {OTHER_TABS.map((item) => (
               <DropdownMenuItem
                 key={item.value}

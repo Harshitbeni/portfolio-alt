@@ -16,7 +16,6 @@ export function PlaygroundHomeTabsHeader() {
   const [tab, setTab] = useState<HomeTab>("work");
   const [otherTab, setOtherTab] = useState<OtherTab>("books");
   const [mobileStackEnabled, setMobileStackEnabled] = useState(false);
-  const scrollPositionsRef = useRef<Partial<Record<string, number>>>({});
   const tabsListRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLSpanElement>(null);
   const tabChangeGuardRef = useRef<(nextTab: HomeTab) => boolean>(() => false);
@@ -56,10 +55,6 @@ export function PlaygroundHomeTabsHeader() {
             mobileStackEnabled={mobileStackEnabled}
             tabsListRef={tabsListRef}
             pillRef={pillRef}
-            scrollPositionsRef={scrollPositionsRef}
-            getScrollKey={(mainTab, subTab) =>
-              mainTab === "others" ? `others:${subTab}` : mainTab
-            }
             onSelectTab={(nextTab, nextOtherTab = otherTab) => {
               setTab(nextTab);
               setOtherTab(nextOtherTab);

@@ -1,6 +1,12 @@
+"use client";
+
 import type { ReactNode } from "react";
 import Image from "next/image";
-import { WorkMediaCarousel } from "@/components/work-media-carousel";
+import { useDialKit } from "dialkit";
+import {
+  WorkMediaCarousel,
+  type WorkMediaLayout,
+} from "@/components/work-media-carousel";
 import { cn } from "@/lib/utils";
 import type {
   WorkAccent,
@@ -8,6 +14,18 @@ import type {
   WorkIconName,
   WorkMediaItem,
 } from "@/lib/work";
+
+const WORK_MEDIA_LAYOUT_OPTIONS = [
+  { value: "stack", label: "Stacked" },
+  { value: "row", label: "Horizontal centered" },
+] as const;
+
+function workMediaLayoutFromDial(value: string): Extract<
+  WorkMediaLayout,
+  "stack" | "row"
+> {
+  return value === "row" ? "row" : "stack";
+}
 
 const companyLinkClassName =
   "text-gray-a12 underline decoration-gray-a8 [text-decoration-skip-ink:none] [text-decoration-thickness:10%] outline-none transition-[text-decoration-color] duration-200 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring";
@@ -46,6 +64,21 @@ export function WorkRow({
 }: WorkRowProps) {
   const heading = `${role} at ${company.name}${via ? ` via ${via.name}` : ""}`;
   const visibleMedia = media.slice(0, assetCount);
+  const params = useDialKit(
+    "Work Media",
+    {
+      layout: {
+        type: "select",
+        options: [...WORK_MEDIA_LAYOUT_OPTIONS],
+        default: "stack",
+      },
+    },
+    {
+      id: "work-media-layout",
+      persist: true,
+    },
+  );
+  const layout = workMediaLayoutFromDial(params.layout);
 
   return (
     <article className={cn("flex w-full flex-col gap-1.5", className)}>
@@ -73,7 +106,7 @@ export function WorkRow({
       <WorkMediaCarousel
         heading={heading}
         items={visibleMedia}
-        layout="stack"
+        layout={layout}
         showViewProject={viewProject}
       />
     </article>
@@ -84,6 +117,8 @@ function CompanyLink({ company }: { company: WorkCompany }) {
   return (
     <a
       href={company.href}
+      target="_blank"
+      rel="noopener noreferrer"
       className={cn(companyLinkClassName, companyHoverClassName[company.accent])}
     >
       {company.name}

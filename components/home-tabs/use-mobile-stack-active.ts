@@ -1,29 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+function getMobileStackMediaQuery(breakpoint: number) {
+  return `(max-width: ${breakpoint - 1}px)`;
+}
 
 export function useMobileStackActive(enabled: boolean, breakpoint: number) {
-  const [active, setActive] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
+  return useSyncExternalStore(
+    (onStoreChange) => {
+      if (!enabled) {
+        return () => {};
+      }
 
-    return window.matchMedia(`(max-width: ${breakpoint - 1}px)`).matches;
-  });
+      const mediaQuery = window.matchMedia(getMobileStackMediaQuery(breakpoint));
+      mediaQuery.addEventListener("change", onStoreChange);
+      return () => mediaQuery.removeEventListener("change", onStoreChange);
+    },
+    () => {
+      if (!enabled) {
+        return false;
+      }
 
-  useEffect(() => {
-    if (!enabled) {
-      setActive(false);
-      return;
-    }
-
-    const mediaQuery = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
-    const update = () => setActive(mediaQuery.matches);
-
-    update();
-    mediaQuery.addEventListener("change", update);
-    return () => mediaQuery.removeEventListener("change", update);
-  }, [breakpoint, enabled]);
-
-  return active;
+      return window.matchMedia(getMobileStackMediaQuery(breakpoint)).matches;
+    },
+    () => false,
+  );
 }

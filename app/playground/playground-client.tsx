@@ -7,6 +7,7 @@ import {
   Bubble,
   BubbleContent,
 } from "@/components/ui/bubble";
+import { AvatarPerson } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -100,6 +101,7 @@ type Selection =
   | "input"
   | "nav-card"
   | "bubble"
+  | "avatar"
   | "tabs"
   | "home-tabs-header"
   | "book-row"
@@ -117,6 +119,7 @@ const BUTTON_VARIANTS = [
   "outline",
   "secondary",
   "ghost",
+  "inline",
   "link",
 ] as const;
 const BUTTON_SIZES = ["default", "sm", "lg", "icon"] as const;
@@ -143,6 +146,27 @@ const BUBBLE_VARIANTS = [
 ] as const;
 const BUBBLE_SIZES = ["xs", "sm", "default", "lg"] as const;
 const BUBBLE_ALIGNS = ["start", "end"] as const;
+const AVATAR_SIZES = ["xs", "sm", "default", "lg"] as const;
+const PLAYGROUND_AVATAR_MEMBERS: Array<{
+  name: string;
+  role: string;
+  src?: string;
+}> = [
+  {
+    name: "Harshit Beniwal",
+    role: "Product Designer",
+    src: "/work/privado-mobile-app-scan/portrait-black-and-white.png",
+  },
+  {
+    name: "Nitin Garg",
+    role: "Head of Design",
+    src: "/work/privado-mobile-app-scan/privado-team-photo.jpg",
+  },
+  {
+    name: "Vaibhav Antil",
+    role: "CEO",
+  },
+];
 const NAV_CARD_VARIANTS = ["full", "compact"] as const;
 const TABS_VARIANTS = ["default", "line", "pills"] as const;
 const TABS_ORIENTATIONS = ["horizontal", "vertical"] as const;
@@ -184,6 +208,7 @@ type InputSize = (typeof INPUT_SIZES)[number];
 type BubbleVariant = (typeof BUBBLE_VARIANTS)[number];
 type BubbleSize = (typeof BUBBLE_SIZES)[number];
 type BubbleAlign = (typeof BUBBLE_ALIGNS)[number];
+type AvatarSize = (typeof AVATAR_SIZES)[number];
 type TabsVariant = (typeof TABS_VARIANTS)[number];
 type TabsOrientation = (typeof TABS_ORIENTATIONS)[number];
 type TypeWeight = (typeof TYPE_WEIGHTS)[number];
@@ -253,6 +278,19 @@ export function Playground() {
     size: "default" as BubbleSize,
     align: "start" as BubbleAlign,
     pill: false,
+  });
+  const [avatar, setAvatar] = useState<{
+    name: string;
+    role: string;
+    src: string;
+    size: AvatarSize;
+    showImage: boolean;
+  }>({
+    name: PLAYGROUND_AVATAR_MEMBERS[0].name,
+    role: PLAYGROUND_AVATAR_MEMBERS[0].role,
+    src: PLAYGROUND_AVATAR_MEMBERS[0].src ?? "",
+    size: "xs",
+    showImage: true,
   });
   const [tabs, setTabs] = useState({
     variant: "default" as TabsVariant,
@@ -432,6 +470,13 @@ export function Playground() {
               current={selection === "bubble"}
               nested
               onClick={() => setSelection("bubble")}
+            />
+            <NavItem
+              label="Avatar"
+              current={selection === "avatar"}
+              nested
+              custom
+              onClick={() => setSelection("avatar")}
             />
             <NavItem
               label="Tabs"
@@ -698,6 +743,29 @@ export function Playground() {
             >
               <BubbleContent>{bubble.content}</BubbleContent>
             </Bubble>
+          </div>
+        ) : null}
+
+        {selection === "avatar" ? (
+          <div className="flex w-full max-w-[568px] flex-col gap-4">
+            <p className="text-xs font-medium text-gray-10">Team</p>
+            <div className="flex flex-col gap-1">
+              {PLAYGROUND_AVATAR_MEMBERS.map((member, index) => (
+                <AvatarPerson
+                  key={member.name}
+                  name={index === 0 ? avatar.name : member.name}
+                  role={index === 0 ? avatar.role : member.role}
+                  src={
+                    avatar.showImage
+                      ? index === 0
+                        ? avatar.src || undefined
+                        : member.src
+                      : undefined
+                  }
+                  size={avatar.size}
+                />
+              ))}
+            </div>
           </div>
         ) : null}
 
@@ -1267,6 +1335,56 @@ export function Playground() {
                   setBubble((current) => ({
                     ...current,
                     pill: !current.pill,
+                  }))
+                }
+              />
+            </>
+          ) : null}
+
+          {selection === "avatar" ? (
+            <>
+              <Field label="name">
+                <input
+                  value={avatar.name}
+                  onChange={(event) =>
+                    setAvatar((current) => ({
+                      ...current,
+                      name: event.target.value,
+                    }))
+                  }
+                  className="h-8 w-24 bg-transparent text-right text-sm text-foreground outline-none"
+                />
+              </Field>
+              <Field label="role">
+                <input
+                  value={avatar.role}
+                  onChange={(event) =>
+                    setAvatar((current) => ({
+                      ...current,
+                      role: event.target.value,
+                    }))
+                  }
+                  className="h-8 w-24 bg-transparent text-right text-sm text-foreground outline-none"
+                />
+              </Field>
+              <InspectorSelect
+                label="size"
+                value={avatar.size}
+                options={AVATAR_SIZES}
+                onChange={(value) =>
+                  setAvatar((current) => ({
+                    ...current,
+                    size: value as AvatarSize,
+                  }))
+                }
+              />
+              <InspectorCheck
+                label="image"
+                checked={avatar.showImage}
+                onToggle={() =>
+                  setAvatar((current) => ({
+                    ...current,
+                    showImage: !current.showImage,
                   }))
                 }
               />

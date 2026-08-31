@@ -1,3 +1,4 @@
+import { ProductDesignerShimmer } from "@/components/product-designer-shimmer";
 import { Suspense } from "react";
 import { HomeTabs } from "@/components/home-tabs";
 import { NavCard } from "@/components/nav-card";
@@ -42,11 +43,7 @@ export default async function Home({
       <div className="flex w-full flex-col items-start gap-12">
         <div className="px-4">
           <p className="text-pretty text-sm leading-5 text-muted-foreground">
-            Hello, I am a{" "}
-            <strong className="font-normal text-foreground">
-              ⌘ Product Designer
-            </strong>{" "}
-            who leads with curiosity and thoughtfulness in everything I do, design
+            Hello, I am a <ProductDesignerShimmer /> who leads with curiosity and thoughtfulness in everything I do, design
             or otherwise. My expertise lies in interaction design, systems
             thinking, and putting uncommon care.
           </p>

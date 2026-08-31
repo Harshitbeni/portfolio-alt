@@ -37,6 +37,7 @@ let syncRequest: Promise<void> | null = null;
 let nowPlayingInFlight: Promise<void> | null = null;
 let nowPlayingTimer: number | null = null;
 let nowPlayingListenersBound = false;
+let pendingTodayTracks: MusicTrack[] = [];
 
 let snapshot: MusicCacheSnapshot = {
   sections: null,
@@ -47,6 +48,52 @@ let snapshot: MusicCacheSnapshot = {
 
 function stripNowPlaying(sections: MusicSection[]) {
   return sections.filter((section) => section.id !== "nowplaying");
+}
+
+function findTrack(sections: MusicSection[], id: string) {
+  for (const section of stripNowPlaying(sections)) {
+    for (const track of section.tracks) {
+      if (track.id === id) {
+        return track;
+      }
+    }
+  }
+
+  return null;
+}
+
+function insertTracksAtToday(
+  sections: MusicSection[],
+  tracks: MusicTrack[],
+): MusicSection[] {
+  if (!tracks.length) {
+    return sections;
+  }
+
+  const incomingIds = new Set(tracks.map((track) => track.id));
+  const without = stripNowPlaying(sections)
+    .map((section) => ({
+      ...section,
+      tracks: section.tracks.filter((track) => !incomingIds.has(track.id)),
+    }))
+    .filter((section) => section.tracks.length > 0);
+
+  if (without.some((section) => section.id === "today")) {
+    return without.map((section) =>
+      section.id === "today"
+        ? { ...section, tracks: [...tracks, ...section.tracks] }
+        : section,
+    );
+  }
+
+  return [
+    {
+      id: "today",
+      label: "Today",
+      tracks,
+    },
+    ...without,
+  ];
 }
 
 function overlayLiveNowPlaying(
@@ -78,12 +125,69 @@ function overlayLiveNowPlaying(
   ];
 }
 
+function prunePendingToday() {
+  const sections = cachedSections ?? [];
+
+  pendingTodayTracks = pendingTodayTracks.filter((pending) => {
+    if (pending.id === cachedNowPlaying?.id) {
+      return false;
+    }
+
+    const existing = findTrack(sections, pending.id);
+
+    if (!existing) {
+      return true;
+    }
+
+    return (pending.playedAt ?? 0) > (existing.playedAt ?? 0);
+  });
+}
+
+function setNowPlaying(next: MusicTrack | null) {
+  if (nowPlayingEquals(cachedNowPlaying, next)) {
+    return;
+  }
+
+  rememberFinishedNowPlaying(cachedNowPlaying, next);
+  cachedNowPlaying = next;
+  prunePendingToday();
+  emit();
+}
+
+function rememberFinishedNowPlaying(
+  previous: MusicTrack | null,
+  next: MusicTrack | null,
+) {
+  if (!previous || previous.id === next?.id) {
+    return;
+  }
+
+  pendingTodayTracks = [
+    {
+      ...previous,
+      playedAt: previous.playedAt ?? Date.now(),
+    },
+    ...pendingTodayTracks.filter((track) => track.id !== previous.id),
+  ];
+}
+
+function visibleLibrarySections() {
+  return insertTracksAtToday(
+    cachedSections ?? [],
+    pendingTodayTracks.filter((track) => track.id !== cachedNowPlaying?.id),
+  );
+}
+
 function emit() {
+  const hasOverlay =
+    cachedSections !== null ||
+    cachedNowPlaying !== null ||
+    pendingTodayTracks.length > 0;
+
   snapshot = {
-    sections:
-      cachedSections === null && !cachedNowPlaying
-        ? null
-        : overlayLiveNowPlaying(cachedSections ?? [], cachedNowPlaying),
+    sections: hasOverlay
+      ? overlayLiveNowPlaying(visibleLibrarySections(), cachedNowPlaying)
+      : null,
     nowPlaying: cachedNowPlaying,
     totalTracks: cachedTotalTracks,
     partial: cachedPartial,
@@ -221,6 +325,7 @@ function applyLibrary(
       hasFullLibrary = true;
       cachedPartial = false;
     }
+    prunePendingToday();
     emit();
   };
 
@@ -416,13 +521,7 @@ async function loadNowPlaying() {
       }
 
       const next = payload.nowPlaying ? nowPlayingToTrack(payload) : null;
-
-      if (nowPlayingEquals(cachedNowPlaying, next)) {
-        return;
-      }
-
-      cachedNowPlaying = next;
-      emit();
+      setNowPlaying(next);
     } catch {
       // Keep the last known overlay if Last.fm is unreachable.
     }

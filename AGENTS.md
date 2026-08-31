@@ -12,11 +12,18 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 
 Next.js App Router + TypeScript + Tailwind v4 + shadcn/ui (Radix).
 
+## Repository roles
+
+- `/Users/harshitbeni/Repos/portfolio-alt` is the new portfolio and the active working repository. Make all requested portfolio changes here unless the user says otherwise.
+- `/Users/harshitbeni/Repos/portfolio` is the old portfolio. Use it only as a reference for content, design, structure, and implementation details.
+- Do not edit the old portfolio unless the user explicitly asks for changes there.
+- When copying from the old portfolio, adapt the work to the new portfolio instead of overwriting the new project wholesale.
+
 ## Design system
 
 Start small. Add colors and components only when asked.
 
-- **Type:** Tokens: `MD` (`--type-md`, 16px; `text-md-medium` / `text-md-semibold` at 500 / 600), `SM` (`--type-sm`, 14px), `XS` (`--type-xs`, 13px), `XXS` (`--type-xxs`, 12px). Add more type tokens only when asked.
+- **Type:** Tokens: `3XL` (`--type-3xl`, 36px), `2XL` (`--type-2xl`, 32px), `XL` (`--type-xl`, 24px), `LG` (`--type-lg`, 20px), `MD` (`--type-md`, 16px; `text-md-medium` / `text-md-semibold` at 500 / 600), `SM` (`--type-sm`, 14px), `XS` (`--type-xs`, 13px), `XXS` (`--type-xxs`, 12px). Add more type tokens only when asked.
 - **Shadows:** Radix Themes scale `--shadow-1`–`--shadow-6` (light/dark). Tailwind `shadow-sm` / `shadow-md` / `shadow-lg` map to 2 / 4 / 5.
 - **Components:** shadcn/ui (Radix). Installed: `Button`, `Dropdown Menu`, `Checkbox`, `Input`, `Bubble`. Add more with `npx shadcn@latest add <name>`.
 - **Colors:** Radix `gray`, `red`, `green`, `yellow`, `blue`, and `purple` 1–12, plus Radix `gray` alpha (`--gray-a1`–`--gray-a12`). Semantic status still maps to `--red-9` / `--green-9` / `--yellow-9`. Tokens live in `app/globals.css`.

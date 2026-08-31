@@ -22,7 +22,6 @@ import {
   homeTabFromParam,
   isHomeTab,
   isOtherTab,
-  getHomeScrollKey,
   type HomeTab,
   type OtherTab,
 } from "@/components/home-tabs/constants";
@@ -37,17 +36,6 @@ import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { WORK_ITEMS } from "@/lib/work";
 
 const PLAY_ROW_FADE_HEIGHT = 32;
-
-function restoreScrollPosition(scrollY: number) {
-  const applyScroll = () => {
-    window.scrollTo({ top: scrollY, behavior: "instant" });
-  };
-
-  requestAnimationFrame(() => {
-    applyScroll();
-    requestAnimationFrame(applyScroll);
-  });
-}
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -208,9 +196,11 @@ function HomeTabPanel({
     case "work":
       content = (
         <div className="flex w-full flex-col gap-12">
-          {WORK_ITEMS.map(({ id, ...item }) => (
-            <WorkRow key={id} {...item} />
-          ))}
+          {WORK_ITEMS
+            .filter((item) => item.id !== "bland")
+            .map(({ id, ...item }) => (
+              <WorkRow key={id} {...item} />
+            ))}
         </div>
       );
       break;
@@ -254,7 +244,6 @@ export function HomeTabs({
     void prefetchMusicLibrary();
   }, []);
 
-  const scrollPositionsRef = useRef<Partial<Record<string, number>>>({});
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -272,6 +261,9 @@ export function HomeTabs({
     homeTabFromParam(tabParam),
   );
   const [exitEnabled, setExitEnabled] = useState(false);
+  const [slideEnterSide, setSlideEnterSide] = useState<"before" | "after">(
+    "after",
+  );
   const [otherTab, setOtherTab] = useState<OtherTab>(
     isOtherTab(tabParam) ? tabParam : "books",
   );
@@ -287,9 +279,7 @@ export function HomeTabs({
     (nextTab: HomeTab, nextOtherTab: OtherTab = otherTab) => {
       const params = new URLSearchParams(searchParams.toString());
       const nextTabParam = tabParamForSelection(nextTab, nextOtherTab);
-      const currentScrollKey = getHomeScrollKey(tab, otherTab);
 
-      scrollPositionsRef.current[currentScrollKey] = window.scrollY;
       setTab(nextTab);
       setOtherTab(nextOtherTab);
       pendingTabParamRef.current = nextTabParam ?? "";
@@ -302,17 +292,12 @@ export function HomeTabs({
 
       const query = params.toString();
       const href = query ? `${pathname}?${query}` : pathname;
-      const nextScrollKey = getHomeScrollKey(nextTab, nextOtherTab);
-      const nextScrollY = scrollPositionsRef.current[nextScrollKey] ?? 0;
-
-      restoreScrollPosition(nextScrollY);
 
       requestAnimationFrame(() => {
         router.replace(href, { scroll: false });
-        restoreScrollPosition(nextScrollY);
       });
     },
-    [otherTab, pathname, router, searchParams, tab],
+    [otherTab, pathname, router, searchParams],
   );
 
   useEffect(() => {
@@ -354,11 +339,7 @@ export function HomeTabs({
   }, []);
 
   useEffect(() => {
-    const scrollKey = getHomeScrollKey(tab, otherTab);
-    const scrollY = scrollPositionsRef.current[scrollKey] ?? 0;
-
     const frame = requestAnimationFrame(() => {
-      restoreScrollPosition(scrollY);
       movePill(hasMountedRef.current);
       hasMountedRef.current = true;
       setExitEnabled(true);
@@ -378,17 +359,28 @@ export function HomeTabs({
       return;
     }
 
+    const previousIndex = HOME_TABS.findIndex(
+      (item) => item.value === renderedTab,
+    );
+    const nextIndex = HOME_TABS.findIndex((item) => item.value === tab);
+
+    if (
+      previousIndex !== -1 &&
+      nextIndex !== -1 &&
+      previousIndex !== nextIndex
+    ) {
+      setSlideEnterSide(nextIndex < previousIndex ? "before" : "after");
+    }
+
     setVisibleTabs((prev) => (prev.includes(tab) ? prev : [...prev, tab]));
-  }, [tab]);
+  }, [renderedTab, tab]);
 
   useEffect(() => {
     if (!visibleTabs.includes(tab) || renderedTab === tab) return;
 
     const frame = requestAnimationFrame(() => {
       setRenderedTab(tab);
-      if (tab !== "play") {
-        setFlowTab(tab);
-      }
+      setFlowTab(tab);
     });
 
     return () => cancelAnimationFrame(frame);
@@ -434,8 +426,6 @@ export function HomeTabs({
         mobileStackEnabled={mobileStackEnabled}
         tabsListRef={tabsListRef}
         pillRef={pillRef}
-        scrollPositionsRef={scrollPositionsRef}
-        getScrollKey={getHomeScrollKey}
         onSelectTab={selectTab}
         tabChangeGuardRef={tabChangeGuardRef}
       />
@@ -471,6 +461,9 @@ export function HomeTabs({
               inert={isRendered ? undefined : true}
               data-page-id={String(index + 1)}
               data-side={side}
+              data-enter-from={
+                isRendered && visibleTabs.length > 1 ? slideEnterSide : undefined
+              }
               data-active={isRendered ? "true" : undefined}
               data-flow={isFlow ? "true" : undefined}
               className="t-page flex-none p-0"
@@ -484,7 +477,12 @@ export function HomeTabs({
                 value={item.value}
                 otherTab={otherTab}
                 playFadeHeight={PLAY_ROW_FADE_HEIGHT}
-                mediaActive={item.value !== "play" || (isFlow && visibleTabs.length === 1)}
+                mediaActive={
+                  item.value !== "play" ||
+                  (tab === "play" &&
+                    renderedTab === "play" &&
+                    visibleTabs.length === 1)
+                }
                 notesPanel={notesPanel}
               />
             </TabsContent>

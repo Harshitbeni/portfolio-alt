@@ -284,7 +284,7 @@ export function NavCard({
           data-nav-card-chevron=""
           aria-hidden="true"
           className={cn(
-            "nav-card-chevron-shimmer absolute right-0 bottom-0 z-10 flex size-3 origin-bottom-right items-center justify-center overflow-hidden rounded-full bg-gray-12 text-gray-1",
+            "absolute right-0 bottom-0 z-10 flex size-3 origin-bottom-right items-center justify-center overflow-hidden rounded-full bg-gray-12 text-gray-1",
             "transition-[scale] [transition-duration:var(--resize-dur)] [transition-timing-function:var(--resize-ease)]",
             "group-hover/avatar:scale-110",
             "motion-reduce:transition-none motion-reduce:group-hover/avatar:scale-100"

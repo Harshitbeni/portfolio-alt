@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Shantell_Sans } from "next/font/google";
 import Script from "next/script";
 import { AgentationDevToolbar } from "@/components/agentation-dev-toolbar";
+import { DialkitDevRoot } from "@/components/dialkit-dev-root";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
@@ -9,6 +10,13 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
+});
+
+const shantellSans = Shantell_Sans({
+  subsets: ["latin"],
+  variable: "--font-shantell-sans",
+  display: "swap",
+  axes: ["BNCE"],
 });
 
 export const metadata: Metadata = {
@@ -20,13 +28,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${inter.variable} h-full scroll-smooth scroll-pt-20 antialiased`}
+      className={`${inter.variable} ${shantellSans.variable} h-full scroll-smooth scroll-pt-20 antialiased`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col font-sans">
         <Script src="/theme-init.js" strategy="beforeInteractive" />
         <Providers>{children}</Providers>
         <AgentationDevToolbar />
+        <DialkitDevRoot />
       </body>
     </html>
   );

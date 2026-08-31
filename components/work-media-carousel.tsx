@@ -9,7 +9,9 @@ import {
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { defaultIcons, mediaControlIcons } from "@/lib/icon-context";
+import { Button } from "@/components/ui/button";
+import { VideoPlayer } from "@/components/ui/video-player";
+import { defaultIcons } from "@/lib/icon-context";
 import { cn } from "@/lib/utils";
 import type { WorkCaptionPart, WorkMediaItem } from "@/lib/work";
 
@@ -18,9 +20,6 @@ export const WORK_MEDIA_TILE_HEIGHT = 320;
 export const WORK_MEDIA_TILE_GAP = 12;
 
 const TILE_SCROLL_BY = WORK_MEDIA_TILE_WIDTH + WORK_MEDIA_TILE_GAP;
-const VIDEO_PROGRESS_RING_RADIUS = 10;
-const VIDEO_PROGRESS_RING_CIRCUMFERENCE =
-  2 * Math.PI * VIDEO_PROGRESS_RING_RADIUS;
 const WORK_MEDIA_MIN_HEIGHT = 240;
 const WORK_MEDIA_MIN_WIDTH = 0;
 const WORK_MEDIA_GAP = 6;
@@ -34,7 +33,11 @@ const fixedTileClassName = "h-[320px] w-[480px] shrink-0";
 
 export type WorkMediaFit = "fixed" | "content";
 export type WorkMediaObjectFit = "contain" | "cover";
-export type WorkMediaLayout = "carousel" | "stack";
+export type WorkMediaLayout = "carousel" | "stack" | "row";
+
+function isStackedLayout(layout: WorkMediaLayout) {
+  return layout === "stack" || layout === "row";
+}
 
 export function WorkMediaCarousel({
   heading,
@@ -46,6 +49,7 @@ export function WorkMediaCarousel({
   layout = "carousel",
   showViewProject = false,
   autoPlay = true,
+  className,
 }: {
   heading: string;
   items: WorkMediaItem[];
@@ -56,6 +60,7 @@ export function WorkMediaCarousel({
   layout?: WorkMediaLayout;
   showViewProject?: boolean;
   autoPlay?: boolean;
+  className?: string;
 }) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const reducedMotion = usePrefersReducedMotion();
@@ -132,8 +137,12 @@ export function WorkMediaCarousel({
     />
   ));
 
-  if (layout === "stack") {
-    return <div className="flex w-full flex-col gap-3 py-3">{slides}</div>;
+  if (isStackedLayout(layout)) {
+    return (
+      <div className={cn("flex w-full flex-col gap-3 py-3", className)}>
+        {slides}
+      </div>
+    );
   }
 
   return (
@@ -183,20 +192,33 @@ function WorkMediaSlide({
   const label = caption || `${heading} media`;
   const effectiveMinHeight = fullWidth ? 0 : minHeight;
   const effectiveMinWidth = fullWidth ? 0 : minWidth;
+  const isStack = isStackedLayout(layout);
+  const isCaptionRow = layout === "row";
+  const media = (
+    <WorkMediaTile
+      item={item}
+      label={label}
+      fit={fit}
+      minHeight={effectiveMinHeight}
+      objectFit={objectFit}
+      showMuteButton={showMuteButton}
+      autoPlay={autoPlay}
+    />
+  );
 
   return (
     <figure
       className={cn(
-        "flex snap-start flex-col",
-        layout === "stack"
-          ? "w-full pb-6"
+        "flex snap-start",
+        isStack
+          ? "w-full flex-col pb-6"
           : fit === "content"
-          ? fullWidth
-            ? "w-full basis-full shrink-0"
-            : "shrink-0"
-          : "w-[480px] shrink-0",
-        (item.caption.length > 0 || showViewProject) &&
-          (layout === "stack" ? "gap-3" : "gap-1.5"),
+            ? fullWidth
+              ? "w-full basis-full shrink-0 flex-col"
+              : "shrink-0 flex-col"
+            : "w-[480px] shrink-0 flex-col",
+        (item.caption.length > 0 || (showViewProject && item.href)) &&
+          (isStack ? "gap-3" : "gap-1.5"),
       )}
       style={mediaSlideStyle(
         item,
@@ -213,64 +235,50 @@ function WorkMediaSlide({
           aria-label={`View ${label}`}
           className="block outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
         >
-          <WorkMediaTile
-            item={item}
-            label={label}
-            fit={fit}
-            minHeight={effectiveMinHeight}
-            objectFit={objectFit}
-            showMuteButton={showMuteButton}
-            autoPlay={autoPlay}
-          />
+          {media}
         </Link>
       ) : (
-        <WorkMediaTile
-          item={item}
-          label={label}
-          fit={fit}
-          minHeight={effectiveMinHeight}
-          objectFit={objectFit}
-          showMuteButton={showMuteButton}
-          autoPlay={autoPlay}
-        />
+        media
       )}
-      {item.caption.length > 0 || showViewProject ? (
+      {item.caption.length > 0 || (showViewProject && item.href) ? (
         <figcaption
           className={cn(
-            "m-0 w-full text-pretty",
-            layout === "stack"
-              ? "flex flex-col gap-1.5"
-              : item.captionSize === "xs"
-              ? "text-xs leading-[18px] text-gray-a11"
-              : "text-xxs leading-4 text-gray-a10",
+            "m-0 text-pretty",
+            isCaptionRow
+              ? "flex w-full flex-row flex-nowrap items-center gap-3"
+              : isStack
+                ? "flex w-full flex-col gap-1.5"
+                : item.captionSize === "xs"
+                  ? "w-full text-xs leading-[18px] text-gray-a11"
+                  : "w-full text-xxs leading-4 text-gray-a10",
           )}
         >
           {item.caption.length > 0 ? (
             <p
               className={
-                layout === "stack"
-                  ? "m-0 text-sm leading-5 text-gray-a12"
+                isStack
+                  ? cn(
+                      "m-0 min-w-0 w-full text-sm leading-5 text-gray-a12",
+                      isCaptionRow && "flex-1",
+                    )
                   : undefined
               }
             >
               <WorkMediaCaption parts={item.caption} />
             </p>
           ) : null}
-          {showViewProject ? (
-            item.href ? (
-              <Link
-                href={item.href}
-                className="inline-flex w-fit items-center gap-1 text-xs font-medium leading-[18px] text-gray-a10 outline-none transition-colors duration-200 ease-out hover:text-gray-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-              >
-                <span>View Project</span>
-                <ArrowRight size={12} />
+          {showViewProject && item.href ? (
+            <Button
+              variant="secondary"
+              size="sm"
+              asChild
+              className="w-fit shrink-0"
+            >
+              <Link href={item.href}>
+                View Project
+                <ArrowRight />
               </Link>
-            ) : (
-              <p className="flex w-fit items-center gap-1 text-xs font-medium leading-[18px] text-gray-a10 transition-colors duration-200 ease-out hover:text-gray-12">
-                <span>View Project</span>
-                <ArrowRight size={12} />
-              </p>
-            )
+            </Button>
           ) : null}
         </figcaption>
       ) : null}
@@ -286,10 +294,18 @@ function mediaSlideStyle(
   fullWidth: boolean,
   layout: WorkMediaLayout,
 ) {
-  if (layout === "stack") return undefined;
+  if (isStackedLayout(layout)) return undefined;
   if (fit !== "content") return undefined;
   if (fullWidth) return undefined;
 
+  return mediaContentWidthStyle(item, minHeight, minWidth);
+}
+
+function mediaContentWidthStyle(
+  item: WorkMediaItem,
+  minHeight: number,
+  minWidth: number,
+) {
   const width = item.width ?? WORK_MEDIA_TILE_WIDTH;
   const height = item.height ?? WORK_MEDIA_TILE_HEIGHT;
   const minimumWidth = Math.max(
@@ -391,14 +407,7 @@ function WorkMediaVideo({
   showMuteButton: boolean;
   autoPlay: boolean;
 }) {
-  const Play = mediaControlIcons.play;
-  const Pause = mediaControlIcons.pause;
-  const Volume = mediaControlIcons.volume;
-  const VolumeOff = mediaControlIcons.volumeOff;
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(true);
-  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -430,110 +439,32 @@ function WorkMediaVideo({
     };
   }, [autoPlay, src]);
 
-  const togglePlayback = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (video.paused) {
-      void video.play().catch(() => {});
-      return;
-    }
-
-    video.pause();
-  };
-
-  const toggleMuted = () => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    const nextMuted = !video.muted;
-    video.muted = nextMuted;
-    setMuted(nextMuted);
-  };
-
   return (
-    <div
-      className={tileFrameClassName(fit)}
+    <VideoPlayer
+      ref={videoRef}
+      src={src}
+      aria-label={label}
+      glow={false}
+      overlay
+      autoplay={false}
+      loop
+      playsInline
+      preload="metadata"
+      showMuteButton={showMuteButton}
+      objectFit={objectFit}
+      className={cn(
+        "relative overflow-hidden rounded-[var(--radius)] bg-gray-a2",
+        fit === "content" ? "w-full" : fixedTileClassName,
+      )}
+      frameClassName="absolute inset-0 size-full aspect-auto"
       style={tileFrameStyle(item, fit, minHeight)}
-    >
-      <video
-        ref={videoRef}
-        className={cn(
-          "absolute inset-0 size-full",
-          objectFit === "contain" ? "object-contain" : "object-cover",
-        )}
-        src={src}
-        muted={muted}
-        loop
-        playsInline
-        preload="metadata"
-        onPlay={() => setPlaying(true)}
-        onPause={() => setPlaying(false)}
-        onTimeUpdate={(event) => {
-          const { currentTime, duration } = event.currentTarget;
-          setProgress(
-            Number.isFinite(duration) && duration > 0
-              ? currentTime / duration
-              : 0,
-          );
-        }}
-      />
-      <div className="absolute bottom-[11px] left-[11px] z-20 flex items-center gap-1.5 text-gray-1">
-        <button
-          type="button"
-          className="relative flex size-6 items-center justify-center rounded-full bg-gray-a10 outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-          aria-label={playing ? `Pause ${label}` : `Play ${label}`}
-          onClick={togglePlayback}
-        >
-          <svg
-            aria-hidden
-            viewBox="0 0 24 24"
-            className="-rotate-90 pointer-events-none absolute inset-0 size-full"
-          >
-            <circle
-              cx="12"
-              cy="12"
-              r={VIDEO_PROGRESS_RING_RADIUS}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              opacity="0.28"
-            />
-            <circle
-              cx="12"
-              cy="12"
-              r={VIDEO_PROGRESS_RING_RADIUS}
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeDasharray={VIDEO_PROGRESS_RING_CIRCUMFERENCE}
-              strokeDashoffset={VIDEO_PROGRESS_RING_CIRCUMFERENCE * (1 - progress)}
-            />
-          </svg>
-          {playing ? <Pause size={12} /> : <Play size={12} />}
-        </button>
-        {showMuteButton ? (
-          <button
-            type="button"
-            className={cn(
-              "flex size-6 items-center justify-center rounded-full outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
-              muted ? "bg-gray-a10 text-gray-1" : "bg-gray-1 text-gray-a10",
-            )}
-            aria-label={muted ? `Unmute ${label}` : `Mute ${label}`}
-            onClick={toggleMuted}
-          >
-            {muted ? <VolumeOff size={12} /> : <Volume size={12} />}
-          </button>
-        ) : null}
-      </div>
-    </div>
+    />
   );
 }
 
 function WorkMediaCaption({ parts }: { parts: WorkCaptionPart[] }) {
   return (
-    <>
+    <span className="block w-full min-w-0">
       {parts.map((part, index) =>
         part.dotted ? (
           <span
@@ -546,7 +477,7 @@ function WorkMediaCaption({ parts }: { parts: WorkCaptionPart[] }) {
           <span key={`${part.text}-${index}`}>{part.text}</span>
         ),
       )}
-    </>
+    </span>
   );
 }
 

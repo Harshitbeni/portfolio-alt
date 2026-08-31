@@ -29,13 +29,14 @@ export type IconName =
   | "chevron-right" | "chevron-down" | "x" | "copy" | "menu" | "dot"
   | "monitor" | "sun" | "moon" | "sunset" | "rectangle-horizontal" | "circle"
   | "square-library" | "clock" | "star" | "settings"
-  | "plus" | "arrow-left" | "arrow-right" | "arrow-up" | "arrow-down"
+  | "plus" | "arrow-left" | "arrow-right" | "arrow-up" | "arrow-down" | "arrow-up-right" | "arrow-undo-up"
   | "search" | "loader"
   | "users" | "lock" | "mail" | "bell" | "shield" | "palette"
   | "lightbulb" | "rocket" | "heart" | "paintbrush" | "brain"
   | "globe" | "user"
   | "image" | "link" | "check" | "rotate-ccw"
-  | "play" | "pause" | "volume" | "volume-off" | "pipette" | "expand-45" | "minimize-45"
+  | "play" | "pause" | "volume" | "volume-off" | "audio" | "pipette" | "expand-45" | "minimize-45"
+  | "split" | "network" | "layers" | "tree" | "compare" | "upload" | "git" | "record" | "eye"
   | "home" | "message-circle" | "inbox"
   | "raising-hand-4-finger"
   | "pencil" | "scaling" | "skip-forward" | "corner-down-right" | "corner-down-left"
@@ -67,6 +68,8 @@ const SLOT_TO_CENTRAL: Record<IconName, CentralIconName> = {
   "arrow-right": "IconArrowRight",
   "arrow-up": "IconArrowUp",
   "arrow-down": "IconArrowDown",
+  "arrow-up-right": "IconArrowUpRight",
+  "arrow-undo-up": "IconArrowUndoUp",
   "search": "IconMagnifyingGlass",
   "loader": "IconLoader",
   "users": "IconUserGroup",
@@ -74,6 +77,15 @@ const SLOT_TO_CENTRAL: Record<IconName, CentralIconName> = {
   "mail": "IconEmail1",
   "bell": "IconBell",
   "shield": "IconShield",
+  "split": "IconSplit",
+  "network": "IconAgentNetwork",
+  "layers": "IconLayersThree",
+  "tree": "IconCodeTree",
+  "compare": "IconChartCompare",
+  "upload": "IconCloudUpload",
+  "git": "IconGit",
+  "record": "IconCircleRecord",
+  "eye": "IconEyeOpen",
   "palette": "IconColorPalette",
   "lightbulb": "IconLightbulbGlow",
   "rocket": "IconRocket",
@@ -90,6 +102,7 @@ const SLOT_TO_CENTRAL: Record<IconName, CentralIconName> = {
   "pause": "IconPause",
   "volume": "IconVolumeFull",
   "volume-off": "IconVolumeOff",
+  "audio": "IconAudio",
   "expand-45": "IconExpand45",
   "minimize-45": "IconMinimize45",
   "pipette": "IconEyedropper",
@@ -165,6 +178,14 @@ export const filledIcons = {
   "type" | "palette" | "shadows" | "components",
   IconComponent
 >;
+
+/** Filled slot glyphs. `defaultIcons` stay outlined. */
+export const filledSlotIcons = Object.fromEntries(
+  (Object.keys(SLOT_TO_CENTRAL) as IconName[]).map((slot) => [
+    slot,
+    centralIcon(SLOT_TO_CENTRAL[slot], "filled"),
+  ])
+) as Record<IconName, IconComponent>;
 
 /** Outline/fill pair for the homepage time-mode toggle. */
 export const timeModeIcons = {

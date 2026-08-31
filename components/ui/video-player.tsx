@@ -55,6 +55,8 @@ export type VideoPlayerProps = Omit<
   playButtonStyle?: VideoPlayerPlayButtonStyle;
   caption?: string;
   showMuteButton?: boolean;
+  objectFit?: "contain" | "cover";
+  frameClassName?: string;
   ref?: Ref<HTMLVideoElement>;
 };
 
@@ -63,10 +65,9 @@ function playVideo(video: HTMLVideoElement | null) {
   void video.play().catch(() => {});
 }
 
-function pauseVideo(video: HTMLVideoElement | null, reset = false) {
+function pauseVideo(video: HTMLVideoElement | null) {
   if (!video) return;
   video.pause();
-  if (reset) video.currentTime = 0;
 }
 
 function syncGlowTime(
@@ -114,10 +115,13 @@ export function VideoPlayer({
   playButtonStyle,
   caption,
   showMuteButton = false,
+  objectFit = "cover",
+  frameClassName,
   loop = false,
   playsInline = true,
   preload = "metadata",
   className,
+  style,
   onMouseEnter,
   onMouseLeave,
   onFocus,
@@ -276,8 +280,8 @@ export function VideoPlayer({
 
   const handleDeactivate = (event: SyntheticEvent<HTMLVideoElement>) => {
     if (!autoplayOnHover) return;
-    pauseVideo(event.currentTarget, true);
-    if (glow) pauseVideo(glowRef.current, true);
+    pauseVideo(event.currentTarget);
+    if (glow) pauseVideo(glowRef.current);
     updateProgressRing();
   };
 
@@ -286,7 +290,9 @@ export function VideoPlayer({
     if (glow) syncGlowTime(glowRef.current, event.currentTarget);
   };
 
-  const handleTogglePlay = () => {
+  const handleTogglePlay = (event: SyntheticEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
     const video = internalRef.current;
     if (!video) return;
 
@@ -300,7 +306,9 @@ export function VideoPlayer({
     if (glow) pauseVideo(glowRef.current);
   };
 
-  const handleToggleMute = () => {
+  const handleToggleMute = (event: SyntheticEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
     const video = internalRef.current;
     if (!video) return;
 
@@ -317,8 +325,14 @@ export function VideoPlayer({
         caption && "flex flex-col items-start gap-1.5",
         className,
       )}
+      style={style}
     >
-      <div className="relative isolate aspect-video w-full rounded-[var(--radius)]">
+      <div
+        className={cn(
+          "relative isolate aspect-video w-full rounded-[var(--radius)]",
+          frameClassName,
+        )}
+      >
       {glow && src ? (
         <video
           ref={glowRef}
@@ -343,7 +357,10 @@ export function VideoPlayer({
         <video
           ref={setRefs}
           data-slot="video-player"
-          className="block size-full object-cover"
+          className={cn(
+            "block size-full",
+            objectFit === "contain" ? "object-contain" : "object-cover",
+          )}
           controls={false}
           muted={isMuted}
           loop={loop}

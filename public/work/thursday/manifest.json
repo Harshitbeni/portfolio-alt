@@ -1,0 +1,303 @@
+[
+  {
+    "source": "/assets/video/LaWB80maYUz5FQERPNkzmrq6FE.mp4",
+    "dest": "building-in-public.mp4",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/video/U68Ra4Uz6RmU4IPSbLbTRKdlo.mp4",
+    "dest": "product-demo.mp4",
+    "status": "ok"
+  },
+  {
+    "source": "https://api.producthunt.com/widgets/embed-image/v1/golden-kitty-badge.svg",
+    "dest": "product-hunt-golden-kitty.svg",
+    "status": "error",
+    "error": "Error: Failed to download https://api.producthunt.com/widgets/embed-image/v1/golden-kitty-badge.svg: 404"
+  },
+  {
+    "source": "/assets/img/zoom-logo.png",
+    "dest": "zoom-logo.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/geometric-logo.jpg",
+    "dest": "gather-logo.jpg",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-logo-icon.png",
+    "dest": "thursday-logo.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/11KSGbIZoRSg4pjdnUoif6MKHI.svg",
+    "dest": "comparison-zoom.svg",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/6tTbkXggWgQCAJ4DO2QEdXXmgM.svg",
+    "dest": "comparison-gather.svg",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/portrait-woman.jpg",
+    "dest": "persona-employee.jpg",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/portrait-woman-03.jpeg",
+    "dest": "persona-organiser.jpeg",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/flowchart-sketch.png",
+    "dest": "flowchart-sketch.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-sketches.png",
+    "dest": "thursday-sketches.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-sketch-02.png",
+    "dest": "thursday-sketch-02.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-wireframes.png",
+    "dest": "thursday-wireframes.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-wireframe-sketch.png",
+    "dest": "thursday-wireframe-sketch.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-icebreakers.png",
+    "dest": "thursday-icebreakers.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-video-call.png",
+    "dest": "thursday-video-call.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-video-call-02.png",
+    "dest": "thursday-video-call-02.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-zoom-tools-illustrations.png",
+    "dest": "thursday-zoom-tools-illustrations.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/video-call-screenshot.png",
+    "dest": "video-call-screenshot.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/television.jpg",
+    "dest": "television.jpg",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/outdoor-photo.jpg",
+    "dest": "outdoor-photo.jpg",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/portrait-backpack.png",
+    "dest": "portrait-backpack.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/portrait-mirror.jpg",
+    "dest": "portrait-mirror.jpg",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/donkey-sticker.png",
+    "dest": "donkey-sticker.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/1juoUTb48kPWBaOGKDp0ZVpSKM.png",
+    "dest": "usercard.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/6uHbtpyon1AeOBc6jjxwP4klefk.png",
+    "dest": "lounge-screenshot.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/DpjKuUaWtdlK8ZCyuHjmDYuvNYI.png",
+    "dest": "participation-modes.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/jVe9VZ37lbzwgUjuyCxd3je2wis.png",
+    "dest": "dashboard-scheduling.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-lounge.png",
+    "dest": "thursday-lounge.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-reaction-board.png",
+    "dest": "thursday-reaction-board.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-social-cards.png",
+    "dest": "thursday-social-cards.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-social-game.png",
+    "dest": "thursday-social-game.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-would-you-rather.png",
+    "dest": "thursday-would-you-rather.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-mixer-would-you-rather.png",
+    "dest": "thursday-mixer-would-you-rather.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-mixer-charades.png",
+    "dest": "thursday-mixer-charades.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-mixer-doodle-race.png",
+    "dest": "thursday-mixer-doodle-race.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-mixer-drunk-startups.png",
+    "dest": "thursday-mixer-drunk-startups.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-calendar-app-illustration.png",
+    "dest": "thursday-calendar-app-illustration.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-megaphone-people-illustration.png",
+    "dest": "thursday-megaphone-people-illustration.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-design-feedback.png",
+    "dest": "thursday-design-feedback.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-social-website-07.png",
+    "dest": "thursday-social-website-07.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/product-feedback-quote.png",
+    "dest": "slackbot.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-testimonial-02.webp",
+    "dest": "testimonial-sarah-park.webp",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/thursday-team-photo.jpg",
+    "dest": "thursday-team-photo.jpg",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote.png",
+    "dest": "testimonial-quote-01.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-02.png",
+    "dest": "testimonial-quote-02.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-03.png",
+    "dest": "testimonial-quote-03.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-05.png",
+    "dest": "testimonial-quote-05.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-06.png",
+    "dest": "testimonial-quote-06.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-07.png",
+    "dest": "testimonial-quote-07.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-08.png",
+    "dest": "testimonial-quote-08.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-09.png",
+    "dest": "testimonial-quote-09.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-10.png",
+    "dest": "testimonial-quote-10.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-11.png",
+    "dest": "testimonial-quote-11.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-12.png",
+    "dest": "testimonial-quote-12.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-14.png",
+    "dest": "testimonial-quote-14.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-15.png",
+    "dest": "testimonial-quote-15.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-16.png",
+    "dest": "testimonial-quote-16.png",
+    "status": "ok"
+  },
+  {
+    "source": "/assets/img/testimonial-quote-18.png",
+    "dest": "testimonial-quote-18.png",
+    "status": "ok"
+  }
+]

@@ -41,11 +41,3 @@ export function homeTabFromParam(value: string | null): HomeTab {
   if (isHomeTab(value) && value !== "others") return value;
   return HOME_TABS[0].value;
 }
-
-export function getHomeScrollKey(mainTab: HomeTab, subTab: OtherTab) {
-  if (mainTab === "others") {
-    return `others:${subTab}`;
-  }
-
-  return mainTab;
-}

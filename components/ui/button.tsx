@@ -26,6 +26,8 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:outline-destructive/40 dark:bg-destructive/20 dark:hover:bg-destructive/30",
         link: "text-primary underline-offset-4 hover:underline",
+        inline:
+          "h-auto gap-2 border-0 bg-transparent p-0 font-medium shadow-none hover:bg-transparent aria-expanded:bg-transparent dark:hover:bg-transparent",
       },
       size: {
         default:
@@ -37,6 +39,8 @@ const buttonVariants = cva(
         "icon-xs": "size-6 [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-7",
         "icon-lg": "size-9",
+        inline:
+          "h-auto gap-2 p-0 has-data-[icon=inline-end]:pr-0 has-data-[icon=inline-start]:pl-0",
       },
     },
     defaultVariants: {

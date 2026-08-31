@@ -6,6 +6,9 @@ import { motion, useReducedMotion } from "motion/react";
 import { BookRating } from "@/components/book-rating";
 import type { Book } from "@/lib/books";
 
+const BOOK_COVER_SHADOW =
+  "shadow-[0px_0.602187px_1.08394px_-1.16667px_rgba(0,0,0,0.68),0px_2.28853px_4.11936px_-2.33333px_rgba(0,0,0,0.61),0px_10px_18px_-3.5px_rgba(0,0,0,0.3)]";
+
 export function BookRow({
   book,
 }: {
@@ -27,7 +30,7 @@ export function BookRow({
         className="relative block h-16 w-12 shrink-0"
         style={{ perspective: "500px" }}
       >
-        <span className="after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit] after:border after:border-[var(--black-a3)] after:content-[''] absolute inset-0 overflow-hidden rounded-[4px] bg-gray-2">
+        <span className="absolute inset-0 overflow-hidden rounded-[4px] bg-gray-2">
           <Image
             alt=""
             src={book.coverSrc}
@@ -35,7 +38,11 @@ export function BookRow({
             sizes="64px"
             className="object-cover"
           />
-          <span className="after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit] after:border after:border-[var(--black-a3)] after:content-[''] absolute inset-[2px] rounded-[2px] bg-white shadow-[0px_0.602187px_1.08394px_-1.16667px_rgba(0,0,0,0.68),0px_2.28853px_4.11936px_-2.33333px_rgba(0,0,0,0.61),0px_10px_18px_-3.5px_rgba(0,0,0,0.3)]" />
+          {isCoverOpen ? (
+            <span
+              className={`absolute inset-[2px] rounded-[2px] bg-white ${BOOK_COVER_SHADOW}`}
+            />
+          ) : null}
         </span>
         <motion.span
           animate={{
@@ -43,7 +50,7 @@ export function BookRow({
             rotateY: isCoverOpen ? -32 : 0,
             scale: isCoverOpen ? 1.04 : 1,
           }}
-          className="after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit] after:border after:border-[var(--black-a3)] after:content-[''] absolute top-0 h-16 w-12 overflow-hidden rounded-[4px] bg-gray-2 shadow-[0px_0.602187px_1.08394px_-1.16667px_rgba(0,0,0,0.68),0px_2.28853px_4.11936px_-2.33333px_rgba(0,0,0,0.61),0px_10px_18px_-3.5px_rgba(0,0,0,0.3)]"
+          className={`absolute top-0 h-16 w-12 overflow-hidden rounded-[4px] bg-gray-2${isCoverOpen ? ` ${BOOK_COVER_SHADOW}` : ""}`}
           style={{ transformStyle: "preserve-3d" }}
           transition={
             reducedMotion
@@ -60,6 +67,10 @@ export function BookRow({
           />
           <span className="absolute inset-y-[-12px] left-[2px] w-px bg-black/45 blur-[0.5px]" />
           <span className="absolute inset-y-[-12px] left-[5px] w-px bg-black/25 blur-[1px]" />
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-[2] rounded-[4px] border border-[var(--black-a3)]"
+          />
         </motion.span>
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">

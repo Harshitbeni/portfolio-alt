@@ -54,7 +54,7 @@ export const TYPE_STYLE_WEIGHTS: Partial<
 
 export function typeStyleToken(name: TypeStyleName): TypeTokenName {
   const dash = name.lastIndexOf("-");
-  if (dash === -1) return name;
+  if (dash === -1) return name as TypeTokenName;
   return name.slice(0, dash) as TypeTokenName;
 }
 

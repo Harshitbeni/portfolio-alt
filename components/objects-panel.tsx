@@ -1,5 +1,3 @@
-"use client";
-
 import { ObjectRow } from "@/components/object-row";
 import { OBJECT_ITEMS } from "@/lib/objects";
 

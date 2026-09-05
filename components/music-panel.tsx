@@ -8,6 +8,7 @@ import {
   useReducedMotion,
 } from "motion/react";
 import { MusicRow } from "@/components/music-row";
+import { MusicWaveform } from "@/components/music-waveform";
 import { useMusicCache, warmMusicLibrary, watchNowPlaying } from "@/lib/music-client-cache";
 import type { MusicSection, MusicTrack } from "@/lib/music";
 
@@ -174,17 +175,6 @@ function visibleMusicSections(sections: MusicSection[], visibleCount: number) {
   });
 }
 
-function NowPlayingWaveform() {
-  return (
-    <span aria-hidden className="music-waveform">
-      <span className="music-waveform-bar music-waveform-bar--1" />
-      <span className="music-waveform-bar music-waveform-bar--2" />
-      <span className="music-waveform-bar music-waveform-bar--3" />
-      <span className="music-waveform-bar music-waveform-bar--4" />
-    </span>
-  );
-}
-
 function playStagger(block: HTMLElement | null) {
   if (!block) return;
 
@@ -273,7 +263,7 @@ function NowPlayingSection({
       >
         <span className="t-stagger-line t-stagger-line--1">
           <span className="inline-flex items-center">
-            <NowPlayingWaveform />
+            <MusicWaveform />
             Now playing
           </span>
         </span>
@@ -300,11 +290,13 @@ function LibrarySection({
   enteringIds,
   tracks,
   reduceMotion,
+  shareLayout = true,
 }: {
   section: MusicSection;
   enteringIds: Set<string>;
   tracks: Array<{ track: MusicTrack; priority: boolean }>;
   reduceMotion: boolean;
+  shareLayout?: boolean;
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const nextIds = trackIds(tracks.map(({ track }) => track));
@@ -333,7 +325,7 @@ function LibrarySection({
   return (
     <section aria-labelledby={`music-${section.id}`} className="pb-6">
       <motion.h2
-        layout={!reduceMotion ? "position" : false}
+        layout={!reduceMotion && shareLayout ? "position" : false}
         transition={ROW_LAYOUT}
         ref={headingRef}
         id={`music-${section.id}`}
@@ -351,6 +343,7 @@ function LibrarySection({
             key={track.id}
             track={track}
             priority={priority}
+            shareLayout={shareLayout}
             reveal={
               pagination
                 ? enteringIds.has(track.id)
@@ -372,10 +365,12 @@ function MusicList({
   sections,
   visibleCount,
   enteringIds,
+  shareLayout = true,
 }: {
   sections: MusicSection[];
   visibleCount: number;
   enteringIds: Set<string>;
+  shareLayout?: boolean;
 }) {
   const reduceMotion = Boolean(useReducedMotion());
   const visibleSections = visibleMusicSections(sections, visibleCount);
@@ -424,6 +419,7 @@ function MusicList({
               enteringIds={enteringIds}
               tracks={tracks}
               reduceMotion={reduceMotion}
+              shareLayout={shareLayout}
             />
           );
         })}
@@ -448,7 +444,11 @@ function MusicPanelLoading() {
   );
 }
 
-export function MusicPanel() {
+export function MusicPanel({
+  shareLayout = true,
+}: {
+  shareLayout?: boolean;
+}) {
   const { sections, totalTracks: cachedTotalTracks, partial } = useMusicCache();
   const [visibleCount, setVisibleCount] = useState(() => cachedVisibleCount);
   const sentinelRef = useRef<HTMLDivElement>(null);
@@ -543,6 +543,7 @@ export function MusicPanel() {
         sections={sections}
         visibleCount={visibleCount}
         enteringIds={enteringMusicTrackIds(sections)}
+        shareLayout={shareLayout}
       />
       {hasMore ? <div ref={sentinelRef} aria-hidden className="h-px w-full" /> : null}
       <p className="sr-only" role="status">

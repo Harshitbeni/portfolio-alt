@@ -109,6 +109,7 @@ function Input({
       disabled={disabled}
       className={cn(
         inputVariants({ size, nested: showButton }),
+        showButton && "rounded-[inherit]",
         !showButton && className
       )}
       style={showButton ? undefined : { ...style, borderRadius }}
@@ -122,7 +123,7 @@ function Input({
 
   return (
     <div
-      className={cn(inputShellVariants({ size }), className)}
+      className={cn(inputShellVariants({ size }), "overflow-hidden", className)}
       style={{ ...style, borderRadius }}
     >
       {input}
@@ -135,8 +136,8 @@ function Input({
         aria-label={buttonLabel ?? (button === true ? "Search" : "Action")}
         onClick={onButtonClick}
         className={cn(
-          "absolute inset-y-0 my-auto disabled:opacity-100",
-          size === "sm" ? "end-0.5" : "end-1"
+          "absolute inset-y-0 my-auto border-0 disabled:opacity-100",
+          size === "sm" ? "end-px" : "end-1"
         )}
       >
         {button === true ? <Search /> : button}

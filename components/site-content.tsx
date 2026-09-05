@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 export function SiteContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isHome = pathname === "/";
+  const isNote = pathname.startsWith("/notes");
   const isLegacyCaseStudy = pathname === "/work/privado-mobile-app-scan";
 
   return (
@@ -15,7 +16,7 @@ export function SiteContent({ children }: { children: ReactNode }) {
         "mx-auto flex w-full max-w-[600px] flex-col gap-12 pb-12",
         isLegacyCaseStudy
           ? "max-w-none gap-0 pb-0 pt-0"
-          : isHome
+          : isHome || isNote
             ? "pt-4 sm:pt-[120px]"
             : "pt-4 sm:pt-8",
       )}

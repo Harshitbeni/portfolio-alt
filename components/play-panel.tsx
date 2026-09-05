@@ -8,10 +8,8 @@ const PLAY_PAGE_SIZE = 5;
 const PLAY_LOAD_AHEAD_PX = 240;
 
 export function PlayPanel({
-  fadeHeight,
   mediaActive,
 }: {
-  fadeHeight: number;
   mediaActive: boolean;
 }) {
   const [visibleCount, setVisibleCount] = useState(PLAY_PAGE_SIZE);
@@ -58,7 +56,6 @@ export function PlayPanel({
           key={id}
           {...item}
           autoPlay={mediaActive}
-          fadeHeight={fadeHeight}
         />
       ))}
       {hasMore ? <div ref={sentinelRef} aria-hidden className="h-px w-full" /> : null}

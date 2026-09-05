@@ -10,6 +10,8 @@ export type NoteListItem = {
   slug: string;
   title: string;
   date: string;
+  imageSrc: string | null;
+  excerpt: string;
 };
 
 export type Note = NoteListItem & {
@@ -43,6 +45,22 @@ function parseFrontmatter(raw: string): { data: Frontmatter; body: string } {
   }
 
   return { data: { title, date, slug }, body: match[2].trim() };
+}
+
+function firstNoteImageSrc(body: string): string | null {
+  const match = /!\[[^\]]*]\((\/notes\/[^)\s]+)(?:\s+"[^"]*")?\)/.exec(body);
+  return match?.[1] ?? null;
+}
+
+function noteExcerpt(body: string): string {
+  return body
+    .replace(/!\[[^\]]*]\([^)]*\)/g, " ")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[*_>#`]/g, "")
+    .replace(/^\s*[-+*]\s+/gm, "")
+    .replace(/^\s*\d+\.\s+/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 const MONTHS: Record<string, number> = {
@@ -80,7 +98,12 @@ const loadNotes = cache(async (): Promise<Note[]> => {
     files.map(async (file) => {
       const raw = await readFile(join(NOTES_DIR, file), "utf8");
       const { data, body } = parseFrontmatter(raw);
-      return { ...data, body };
+      return {
+        ...data,
+        body,
+        imageSrc: firstNoteImageSrc(body),
+        excerpt: noteExcerpt(body),
+      };
     }),
   );
 
@@ -89,7 +112,13 @@ const loadNotes = cache(async (): Promise<Note[]> => {
 
 export const getNotes = cache(async (): Promise<NoteListItem[]> => {
   const notes = await loadNotes();
-  return notes.map(({ slug, title, date }) => ({ slug, title, date }));
+  return notes.map(({ slug, title, date, imageSrc, excerpt }) => ({
+    slug,
+    title,
+    date,
+    imageSrc,
+    excerpt,
+  }));
 });
 
 export const getNote = cache(async (slug: string): Promise<Note | null> => {

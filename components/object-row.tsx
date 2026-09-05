@@ -31,11 +31,7 @@ function ObjectRowContent({ item }: { item: ObjectItem }) {
   );
 }
 
-export function ObjectRow({
-  item,
-}: {
-  item: ObjectItem;
-}) {
+export function ObjectRow({ item }: { item: ObjectItem }) {
   if (item.href) {
     return (
       <a

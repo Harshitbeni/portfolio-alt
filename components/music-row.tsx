@@ -226,6 +226,7 @@ export function MusicRow({
   priority = false,
   spinning = false,
   reveal = false,
+  showExternalLink = false,
 }: {
   track: MusicTrack;
   coverSize?: number;
@@ -234,8 +235,9 @@ export function MusicRow({
   priority?: boolean;
   spinning?: boolean;
   reveal?: boolean;
+  showExternalLink?: boolean;
 }) {
-  const rootRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLButtonElement>(null);
   const { playingId, loadingId } = useMusicPlayer();
   const clipStatus = useMusicClipStatus(track.id);
   const isPlaying = playingId === track.id;
@@ -250,11 +252,7 @@ export function MusicRow({
 
   return (
     <div
-      ref={rootRef}
-      className={cn(
-        "group flex w-full min-w-0 items-center gap-3",
-        reveal && "t-stagger",
-      )}
+      className="group flex w-full min-w-0 items-center gap-3"
       onPointerEnter={() => {
         prefetchMusicClip(track);
       }}
@@ -263,11 +261,13 @@ export function MusicRow({
       }}
     >
       <button
+        ref={rootRef}
         type="button"
         className={cn(
           "flex min-w-0 flex-1 items-center gap-3 rounded-md border-0 bg-transparent p-0 text-left font-[inherit] outline-none",
           "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
           isLoading ? "cursor-progress" : "cursor-pointer",
+          reveal && "t-stagger",
         )}
         aria-label={
           isLoading
@@ -308,49 +308,56 @@ export function MusicRow({
           </span>
         </span>
       </button>
-      <span className="flex shrink-0 items-center">
-        {hasPreview ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            aria-label={
-              isLoading
-                ? `Loading ${track.name}`
-                : isPlaying
-                  ? `Pause ${track.name}`
-                  : `Play ${track.name}`
-            }
-            aria-pressed={isPlaying}
-            aria-busy={isLoading || undefined}
-            className={cn(
-              hoverIconButtonClassName,
-              isLoading && "cursor-progress",
-              hoverRevealClassName(isPlaying || isLoading),
-            )}
-            onClick={() => {
-              void toggleMusicTrack(track);
-            }}
-          >
-            <PlayPauseIcon playing={isPlaying} loading={isLoading} />
-          </Button>
-        ) : null}
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          asChild
-          className={cn(hoverIconButtonClassName, hoverRevealClassName(false))}
-        >
-          <a
-            href={track.url}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={`Open ${track.name} on Last.fm`}
-          >
-            <ArrowUpRight size={16} />
-          </a>
-        </Button>
-      </span>
+      {hasPreview || showExternalLink ? (
+        <span className="flex shrink-0 items-center">
+          {hasPreview ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label={
+                isLoading
+                  ? `Loading ${track.name}`
+                  : isPlaying
+                    ? `Pause ${track.name}`
+                    : `Play ${track.name}`
+              }
+              aria-pressed={isPlaying}
+              aria-busy={isLoading || undefined}
+              className={cn(
+                hoverIconButtonClassName,
+                isLoading && "cursor-progress",
+                hoverRevealClassName(isPlaying || isLoading),
+              )}
+              onClick={() => {
+                void toggleMusicTrack(track);
+              }}
+            >
+              <PlayPauseIcon playing={isPlaying} loading={isLoading} />
+            </Button>
+          ) : null}
+          {showExternalLink ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              asChild
+              className={cn(
+                hoverIconButtonClassName,
+                hoverRevealClassName(false),
+              )}
+            >
+              <a
+                href={track.url}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Open ${track.name} on Last.fm`}
+              >
+                <ArrowUpRight size={16} />
+              </a>
+            </Button>
+          ) : null}
+        </span>
+      ) : null}
     </div>
   );
 }

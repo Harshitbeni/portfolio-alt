@@ -80,6 +80,21 @@ function hasVisibleRect(element: HTMLElement): boolean {
   return element.getClientRects().length > 0;
 }
 
+function isModifiedClick(event: MouseEvent) {
+  return event.metaKey || event.ctrlKey || event.shiftKey || event.altKey;
+}
+
+function shouldIgnoreRevealClick(target: EventTarget | null) {
+  if (!(target instanceof Element)) {
+    return false;
+  }
+
+  return Boolean(
+    target.closest("[data-nav-card-panel]") ||
+      target.closest("[data-nav-card-expand]"),
+  );
+}
+
 export type ProfileRevealBridgeOptions = {
   petRef: { readonly current: HTMLElement | null };
   petWidth: number;
@@ -181,15 +196,21 @@ export function useProfileRevealBridge(
     markProfileRecords(records, settingsRef.current);
 
     const activate = (event: MouseEvent) => {
-      if (stateRef.current !== "docked") {
-        event.preventDefault();
+      const current = event.currentTarget as HTMLElement;
+      const record = recordsRef.current.find((item) => item.link === current);
+
+      if (!record || shouldIgnoreRevealClick(event.target)) {
         return;
       }
 
-      const circle = event.currentTarget as HTMLElement;
-      const record = recordsRef.current.find((item) => item.circle === circle);
+      if (stateRef.current !== "docked") {
+        if (event.target instanceof Node && record.circle.contains(event.target)) {
+          event.preventDefault();
+        }
+        return;
+      }
 
-      if (!record || !hasVisibleRect(record.circle)) {
+      if (isModifiedClick(event) || !hasVisibleRect(record.circle)) {
         return;
       }
 
@@ -218,13 +239,13 @@ export function useProfileRevealBridge(
       );
     };
 
-    for (const { circle } of records) {
-      circle.addEventListener("click", activate);
+    for (const { link } of records) {
+      link.addEventListener("click", activate);
     }
 
     return () => {
-      for (const { circle } of records) {
-        circle.removeEventListener("click", activate);
+      for (const { link } of records) {
+        link.removeEventListener("click", activate);
       }
 
       if (completionTimerRef.current !== null) {

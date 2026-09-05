@@ -37,6 +37,12 @@ import {
   readMiniBeniChatSession,
   writeMiniBeniChatSession,
 } from "@/lib/beni-ai/session";
+import { parseBubbleLinks } from "@/lib/bubble-links";
+import { cn } from "@/lib/utils";
+import {
+  MiniBeniBubbleText,
+  MiniBeniLinkCard,
+} from "@/components/mini-beni/mini-beni-link-card";
 import { Bubble, BubbleContent, BubbleGroup } from "@/components/ui/bubble";
 import { Input } from "@/components/ui/input";
 import {
@@ -332,6 +338,12 @@ function MiniBeniChatBubble({
   animateEnter: boolean;
   message: ChatMessage;
 }) {
+  const parsed = parseBubbleLinks(message.text);
+  const align = message.role === "user" ? "end" : "start";
+  const enterClass = animateEnter ? "mini-beni-chat-bubble-enter" : undefined;
+  const bubbleClassName =
+    "*:data-[slot=bubble-content]:h-auto *:data-[slot=bubble-content]:min-h-7 *:data-[slot=bubble-content]:overflow-visible";
+
   useLayoutEffect(() => {
     if (!animateEnter || message.role !== "beni") {
       return;
@@ -340,22 +352,60 @@ function MiniBeniChatBubble({
     playMiniBeniReplyCue(message.id);
   }, [animateEnter, message.id, message.role]);
 
-  return (
+  const textBubble = parsed.text ? (
     <Bubble
-      align={message.role === "user" ? "end" : "start"}
-      className={
-        animateEnter
-          ? "mini-beni-chat-bubble-enter *:data-[slot=bubble-content]:h-auto *:data-[slot=bubble-content]:min-h-7 *:data-[slot=bubble-content]:overflow-visible"
-          : "*:data-[slot=bubble-content]:h-auto *:data-[slot=bubble-content]:min-h-7 *:data-[slot=bubble-content]:overflow-visible"
-      }
+      align={align}
+      className={cn(
+        bubbleClassName,
+        parsed.cardHref ? undefined : enterClass,
+      )}
       pill
       size="sm"
       variant={message.role === "user" ? "blue" : "secondary"}
     >
       <BubbleContent className="block h-auto min-h-7 max-w-full overflow-visible py-1 whitespace-normal wrap-break-word text-left">
-        {message.text}
+        <MiniBeniBubbleText role={message.role} segments={parsed.segments} />
       </BubbleContent>
     </Bubble>
+  ) : null;
+
+  const linkCard = parsed.cardHref ? (
+    <MiniBeniLinkCard
+      className={parsed.text ? undefined : enterClass}
+      url={parsed.cardHref}
+    />
+  ) : null;
+
+  if (textBubble && linkCard) {
+    return (
+      <div
+        className={cn(
+          "flex w-full min-w-0 flex-col gap-1",
+          align === "end" ? "items-end" : "items-start",
+          enterClass,
+        )}
+      >
+        {textBubble}
+        <div className="w-full min-w-0">{linkCard}</div>
+      </div>
+    );
+  }
+
+  return (
+    textBubble ??
+    linkCard ?? (
+      <Bubble
+        align={align}
+        className={cn(bubbleClassName, enterClass)}
+        pill
+        size="sm"
+        variant={message.role === "user" ? "blue" : "secondary"}
+      >
+        <BubbleContent className="block h-auto min-h-7 max-w-full overflow-visible py-1 whitespace-normal wrap-break-word text-left">
+          {message.text}
+        </BubbleContent>
+      </Bubble>
+    )
   );
 }
 
@@ -696,13 +746,14 @@ export function MiniBeniChatInput({
             button={<MiniBeniSendIcon />}
             buttonLabel="Send"
             buttonType="submit"
-            className="border-border bg-popover text-foreground focus-visible:outline-focus-ring"
+            className="border-border bg-popover text-foreground has-[input:focus]:border-gray-8 has-[input:focus-visible]:outline-none"
             id="mini-beni-chat-input"
             maxLength={BENI_MAX_USER_CHARS}
             name="mini-beni-chat"
             onChange={(event) => setValue(event.target.value)}
             placeholder="Ask Beni.."
             ref={inputRef}
+            rounded={9999}
             size="sm"
             type="text"
             value={value}

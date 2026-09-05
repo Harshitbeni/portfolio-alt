@@ -1,13 +1,13 @@
 # Harshit Beniwal (Beni)
 
-Sources: harshitbeni.com (home, about, cv, work), resume PDF, this portfolio repo, public LinkedIn/X overlap. Do not invent jobs, dates, metrics, or quotes. If it is not here, say you do not know.
+Sources: harshitbeni.com (home, about, cv, work), resume PDF, this portfolio repo, public LinkedIn/X overlap. Do not invent jobs, dates, metrics, or quotes. If it is not here or in the live Books, Music, and Stack lists, say you do not know.
 
 ## Identity
 
 - Name: Harshit Beniwal. Goes by Beni / harshitbeni
 - Product designer, ~5+ years. 0→1 and scaling, web and mobile
 - Interests: technology, interaction design, tools, software tinkering, being a citizen of the internet
-- Outside work: RSS, walks, football
+- Outside work: RSS, walks, football, reading, music
 - Currently based in San Francisco, CA
 - Studying Interaction Design (Masters) at California College of the Arts (CCA), 2025–2026
 - B.Des, Symbiosis Institute of Design (SID), Pune, 2016–2020
@@ -15,37 +15,50 @@ Sources: harshitbeni.com (home, about, cv, work), resume PDF, this portfolio rep
 - X/Twitter: https://x.com/harshitbeni (@harshitbeni)
 - LinkedIn: https://www.linkedin.com/in/harshit-beniwal/
 - Bluesky: @harshitbeni.bsky.social
-- Notes: on this site at /?tab=notes (articles at /notes/{slug})
+- Notes: on this site at https://harshitbeni.com/?tab=notes (articles at https://harshitbeni.com/notes/{slug})
 - Site: https://harshitbeni.com
 - Do not volunteer a phone number
 
 ## This site (portfolio-alt)
 
-This repo is a new portfolio. Many pages (about, cv, play, Things 4) are still stubs. The live case studies still live on harshitbeni.com.
+This repo is a new portfolio. About, cv, and some play/case-study pages are still stubs. Live case studies still live on harshitbeni.com. The home Others tab has live Books, Music, and Stack lists.
 
 - Mini Beni (mini-beni™): Harshit's ai bot and a small pet on the nav card. Visitors can drag it and chat with it
 - Playground at /playground: session-only token and component tweaks, does not write CSS
 - Resume PDF: /Harshit-Beniwal-Resume.pdf
-- Nav also surfaces live location (nomads.com/@harshitbeni) and now-playing (Last.fm user harshitbeni)
-- Notes tab lists four essays hosted on this site. /notes redirects to /?tab=notes
+- Nav surfaces live location (nomads.com/@harshitbeni)
+- Others tab: Books (https://harshitbeni.com/?tab=books), Music (https://harshitbeni.com/?tab=music), Stack (https://harshitbeni.com/?tab=stack)
+- Play tab: https://harshitbeni.com/?tab=play (tweets and side projects)
+- When something is playing, Others shows a waveform peek that opens Music
+- Notes tab lists four essays hosted on this site. https://harshitbeni.com/notes redirects to https://harshitbeni.com/?tab=notes
+
+## Stack
+
+Live tool list with urls is appended below. If a tool is not on that list, say you do not know.
+
+## Music
+
+On this site at /?tab=music (Others / Music). Last.fm user harshitbeni. Scrobbles with Sleeve.
+The library is unique tracks (not play counts), grouped as Now playing, Today, This week, This month, This year, Last decade.
+Live now-playing, recents, and library matches are appended per message when available. Do not invent songs. If a song or artist is not in this knowledge, say you do not know, or point people at /?tab=music.
 
 ## Notes
 
 Four posts live on this site. Do not invent extra essays or weekly notes.
 
-### Finding Flow (19 Sep, 2025) — /notes/finding-flow
+### Finding Flow (19 Sep, 2025) — https://harshitbeni.com/notes/finding-flow
 
 About flow state (Mihaly Csikszentmihalyi). A bicycle ride where pedaling and steering faded. As a kid, an iPod Touch felt like an extension of the body. Design changing how we experience technology: Walkman, ChatGPT. Enrolled in Industrial Design following Jony Ive, then found Interaction Design. Built a first website at night in flow. Wants to inspire another kid to get curious and find what makes them flow.
 
-### Why I don't use native apps (31 May, 2025) — /notes/why-i-dont-use-native-apps
+### Why I don't use native apps (31 May, 2025) — https://harshitbeni.com/notes/why-i-dont-use-native-apps
 
 Pushes back on the idea that native is always better. Web apps can be as snappy (Apple Notes vs Nota, ChatGPT vs Chatwise). Native publishers, especially large companies, are not always acting in users' interest. Challenge: use Twitter and YouTube as web apps for 30 days, with extensions (Minimal Theme for Twitter / X, Control Panel for Twitter, Untrap for Youtube). He has used web versions of both for a couple of years. Closes by inviting email at hello@harshitbeni.com.
 
-### Hallucinations might be a feature, not a bug (25 May, 2025) — /notes/hallucinations-might-be-a-feature-not-a-bug
+### Hallucinations might be a feature, not a bug (25 May, 2025) — https://harshitbeni.com/notes/hallucinations-might-be-a-feature-not-a-bug
 
 Split-brain patients confabulate; the left hemisphere makes up reasons. Humans hallucinate to fill gaps; LLMs do too. Anthropic research (via a LessWrong writeup of tracing thoughts in an LLM) shows Claude making up reasoning to agree with a user. Hallucinations may be fundamental to intelligence with finite resources. "Making mistakes is a sign of intelligence; making things up to justify them is the folly of humanity." Email closer.
 
-### I have a dream (13 May, 2025) — /notes/i-have-a-dream
+### I have a dream (13 May, 2025) — https://harshitbeni.com/notes/i-have-a-dream
 
 First blog post. Written in a shack in a beach town in Kerala, India. Life about to change in the next 3 months. Starting a blog to write weekly and become a better storyteller. No email closer.
 

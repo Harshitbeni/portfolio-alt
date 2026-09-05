@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { WorkMediaCarousel } from "@/components/work-media-carousel";
-import { defaultIcons } from "@/lib/icon-context";
+import { useEffect, useRef } from "react";
+import { Image } from "@/components/ui/image";
+import { VideoPlayer } from "@/components/ui/video-player";
 import { cn } from "@/lib/utils";
 import type { WorkMediaItem, WorkMediaKind } from "@/lib/work";
 
 export type PlayMediaKind = "all" | Extract<WorkMediaKind, "video" | "image">;
 
-const PLAY_ASSET_HEIGHT = 280;
-const PLAY_TEXT_LINE_HEIGHT = 20;
-const PLAY_VISIBLE_TEXT_HEIGHT = PLAY_TEXT_LINE_HEIGHT * 3;
-const ChevronDown = defaultIcons["chevron-down"];
+const PLAY_MEDIA_MAX = 4;
+const PLAY_ASPECT_EPSILON = 0.01;
+const PLAY_MEDIA_FALLBACK_WIDTH = 16;
+const PLAY_MEDIA_FALLBACK_HEIGHT = 9;
 
 export type PlayRowProps = {
   href: string;
@@ -20,7 +20,6 @@ export type PlayRowProps = {
   media?: WorkMediaItem[];
   mediaKind?: PlayMediaKind;
   mediaCount?: number;
-  fadeHeight?: number;
   autoPlay?: boolean;
   className?: string;
 };
@@ -31,7 +30,6 @@ export function PlayRow({
   media = [],
   mediaKind = "all",
   mediaCount,
-  fadeHeight,
   autoPlay = true,
   className,
 }: PlayRowProps) {
@@ -40,7 +38,12 @@ export function PlayRow({
   };
   const visibleMedia = media
     .filter((item) => mediaKind === "all" || item.kind === mediaKind)
-    .slice(0, mediaCount);
+    .slice(
+      0,
+      mediaCount === undefined
+        ? PLAY_MEDIA_MAX
+        : Math.min(mediaCount, PLAY_MEDIA_MAX),
+    );
 
   return (
     <article
@@ -67,79 +70,236 @@ export function PlayRow({
         }
       }}
     >
-      <WorkMediaCarousel
-        heading="Post"
-        items={visibleMedia}
-        fit="content"
-        assetHeight={PLAY_ASSET_HEIGHT}
-        objectFit="contain"
-        autoPlay={autoPlay}
-      />
-      <PlayPostText text={text} fadeHeight={fadeHeight} />
+      <PlayMediaGrid items={visibleMedia} autoPlay={autoPlay} />
+      <p className="m-0 w-full whitespace-pre-wrap text-pretty text-sm leading-5 text-gray-12">
+        {text}
+      </p>
     </article>
   );
 }
 
-function PlayPostText({
-  text,
-  fadeHeight = 40,
+type TileLayout = {
+  aspectRatio: number;
+  objectFit: "contain" | "cover";
+};
+
+function PlayMediaGrid({
+  items,
+  autoPlay,
 }: {
-  text: string;
-  fadeHeight?: number;
+  items: WorkMediaItem[];
+  autoPlay: boolean;
 }) {
-  const textRef = useRef<HTMLParagraphElement>(null);
-  const [canExpand, setCanExpand] = useState(false);
-  const [expanded, setExpanded] = useState(false);
+  if (items.length === 0) return null;
 
-  useEffect(() => {
-    const textElement = textRef.current;
-    if (!textElement) return;
-
-    const updateCanExpand = () => {
-      setCanExpand(
-        textElement.scrollHeight > PLAY_TEXT_LINE_HEIGHT * 2 + 1,
-      );
-    };
-    const observer = new ResizeObserver(updateCanExpand);
-    const animationFrame = window.requestAnimationFrame(updateCanExpand);
-
-    observer.observe(textElement);
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame);
-      observer.disconnect();
-    };
-  }, []);
+  const layouts = tileLayouts(items);
 
   return (
-    <div className="relative w-full">
-      <p
-        ref={textRef}
-        className={cn(
-          "m-0 whitespace-pre-wrap text-pretty text-sm leading-5 text-gray-12",
-          !expanded && "max-h-[60px] overflow-hidden",
-        )}
-        style={!expanded ? { maxHeight: PLAY_VISIBLE_TEXT_HEIGHT } : undefined}
-      >
-        {text}
-      </p>
-      {!expanded && canExpand ? (
-        <>
-          <div
-            aria-hidden
-            className="pointer-events-none absolute bottom-0 left-0 w-full bg-linear-to-b from-transparent to-background to-[50%]"
-            style={{ height: fadeHeight }}
+    <div
+      className={cn(
+        "w-full overflow-hidden",
+        items.length > 1 && "grid grid-cols-2 gap-1.5",
+      )}
+    >
+      {items.map((item, index) => {
+        const layout = layouts[index];
+        if (!layout) return null;
+
+        return (
+          <PlayMediaTile
+            key={item.id}
+            item={item}
+            aspectRatio={layout.aspectRatio}
+            objectFit={layout.objectFit}
+            autoPlay={autoPlay}
+            sizes={
+              items.length === 1 ? "568px" : "calc((568px - 6px) / 2)"
+            }
           />
-          <button
-            type="button"
-            className="absolute bottom-0 left-0 flex h-8 items-center gap-1 px-0 text-sm font-medium text-gray-10 outline-none transition-colors hover:text-gray-12 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-            onClick={() => setExpanded(true)}
-          >
-            See more
-            <ChevronDown size={14} />
-          </button>
-        </>
-      ) : null}
+        );
+      })}
     </div>
   );
+}
+
+function PlayMediaTile({
+  item,
+  aspectRatio,
+  objectFit,
+  autoPlay,
+  sizes,
+}: {
+  item: WorkMediaItem;
+  aspectRatio: number;
+  objectFit: "contain" | "cover";
+  autoPlay: boolean;
+  sizes: string;
+}) {
+  const label = mediaLabel(item);
+
+  if (item.kind === "video" && item.src) {
+    return (
+      <PlayMediaVideo
+        src={item.src}
+        label={label}
+        aspectRatio={aspectRatio}
+        objectFit={objectFit}
+        autoPlay={autoPlay}
+      />
+    );
+  }
+
+  return (
+    <div
+      className="relative w-full min-w-0 overflow-hidden rounded-md bg-gray-a2"
+      style={{ aspectRatio }}
+    >
+      {item.kind === "image" && item.src ? (
+        <Image
+          src={item.src}
+          alt={label}
+          fill
+          overlay
+          objectFit={objectFit}
+          sizes={sizes}
+        />
+      ) : (
+        <span className="sr-only">{label}</span>
+      )}
+    </div>
+  );
+}
+
+function PlayMediaVideo({
+  src,
+  label,
+  aspectRatio,
+  objectFit,
+  autoPlay,
+}: {
+  src: string;
+  label: string;
+  aspectRatio: number;
+  objectFit: "contain" | "cover";
+  autoPlay: boolean;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!autoPlay) {
+      video.pause();
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry) return;
+        if (entry.isIntersecting) {
+          video.preload = "auto";
+          void video.play().catch(() => {});
+          return;
+        }
+
+        video.pause();
+      },
+      { rootMargin: "100px 0px" },
+    );
+
+    observer.observe(video);
+    return () => {
+      observer.disconnect();
+      video.pause();
+    };
+  }, [autoPlay, src]);
+
+  return (
+    <VideoPlayer
+      ref={videoRef}
+      src={src}
+      aria-label={label}
+      glow={false}
+      overlay
+      autoplay={false}
+      loop
+      playsInline
+      preload="metadata"
+      objectFit={objectFit}
+      className="relative w-full min-w-0 overflow-hidden rounded-[6px] bg-gray-a2"
+      frameClassName="absolute inset-0 size-full aspect-auto"
+      style={{ aspectRatio }}
+    />
+  );
+}
+
+function tileLayouts(items: WorkMediaItem[]): TileLayout[] {
+  const first = items[0];
+  if (items.length === 1 && first) {
+    return [{ aspectRatio: nativeAspectRatio(first), objectFit: "cover" }];
+  }
+
+  const layouts: TileLayout[] = [];
+
+  for (let index = 0; index < items.length; index += 2) {
+    const left = items[index];
+    const right = items[index + 1];
+    if (!left) continue;
+
+    if (right) {
+      layouts.push(...pairLayouts(left, right));
+      continue;
+    }
+
+    layouts.push({
+      aspectRatio: cappedAspectRatio(left),
+      objectFit: "cover",
+    });
+  }
+
+  return layouts;
+}
+
+function pairLayouts(
+  left: WorkMediaItem,
+  right: WorkMediaItem,
+): [TileLayout, TileLayout] {
+  const leftNative = nativeAspectRatio(left);
+  const rightNative = nativeAspectRatio(right);
+
+  if (aspectsEqual(leftNative, rightNative)) {
+    const aspectRatio = cappedAspectRatio(left);
+    return [
+      { aspectRatio, objectFit: "cover" },
+      { aspectRatio, objectFit: "cover" },
+    ];
+  }
+
+  return [
+    { aspectRatio: 1, objectFit: "contain" },
+    { aspectRatio: 1, objectFit: "contain" },
+  ];
+}
+
+function nativeAspectRatio(item: WorkMediaItem) {
+  const width = item.width ?? PLAY_MEDIA_FALLBACK_WIDTH;
+  const height = item.height ?? PLAY_MEDIA_FALLBACK_HEIGHT;
+  if (width <= 0 || height <= 0) {
+    return PLAY_MEDIA_FALLBACK_WIDTH / PLAY_MEDIA_FALLBACK_HEIGHT;
+  }
+  return width / height;
+}
+
+function cappedAspectRatio(item: WorkMediaItem) {
+  return Math.max(1, nativeAspectRatio(item));
+}
+
+function aspectsEqual(left: number, right: number) {
+  return Math.abs(left - right) < PLAY_ASPECT_EPSILON;
+}
+
+function mediaLabel(item: WorkMediaItem) {
+  const caption = item.caption.map((part) => part.text).join("");
+  return caption || "Post media";
 }

@@ -28,7 +28,7 @@ import {
   type HomeTab,
   type OtherTab,
 } from "@/components/home-tabs/constants";
-import { OthersNowPlayingNotes } from "@/components/home-tabs/others-now-playing-notes";
+import { OthersMusicPeek } from "@/components/home-tabs/others-music-peek";
 import { useMobileStackActive } from "@/components/home-tabs/use-mobile-stack-active";
 import { useIcon } from "@/lib/icon-context";
 import { cn } from "@/lib/utils";
@@ -228,41 +228,48 @@ export function HomeTabsHeader({
       : "Others";
 
   const othersDropdownTrigger = (
-    <div className="relative inline-flex shrink-0 overflow-visible">
-      <DropdownMenuTrigger asChild>
-        <button
-          type="button"
-          data-active={tab === "others" ? "true" : undefined}
-          aria-label={
-            tab === "others" ? `Others: ${othersDropdownLabel}` : "Others"
-          }
-          className={cn(
-            tabsTriggerStyles,
-            "t-tab !flex-none shrink-0",
-          )}
-        >
-          <span>{othersDropdownLabel}</span>
-          <ChevronDown
-            size={14}
+    <div
+      className="home-tabs-others-group inline-flex shrink-0 items-center"
+      data-others-open={tab === "others" ? "true" : undefined}
+    >
+      <div className="home-tabs-others-trigger relative inline-flex shrink-0 overflow-visible">
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            data-active={tab === "others" ? "true" : undefined}
+            aria-label={
+              tab === "others" ? `Others: ${othersDropdownLabel}` : "Others"
+            }
             className={cn(
-              "shrink-0 text-current transition-transform duration-200 ease-out",
-              othersMenuOpen && "rotate-180",
+              tabsTriggerStyles,
+              "t-tab !flex-none shrink-0",
             )}
-            aria-hidden
-          />
-        </button>
-      </DropdownMenuTrigger>
-      <OthersNowPlayingNotes active={tab !== "others"} />
+          >
+            <span>{othersDropdownLabel}</span>
+            <ChevronDown
+              size={14}
+              className={cn(
+                "shrink-0 text-current transition-transform duration-200 ease-out",
+                othersMenuOpen && "rotate-180",
+              )}
+              aria-hidden
+            />
+          </button>
+        </DropdownMenuTrigger>
+      </div>
+      <OthersMusicPeek
+        active={tab !== "others"}
+        onSelect={() => handleOtherSubtabSelect("music")}
+      />
     </div>
   );
 
   const othersInlineGroup = (
-    <div className="home-tabs-others-group inline-flex shrink-0 items-center">
-      <div
-        className={`relative inline-flex shrink-0 overflow-visible ${
-          tab === "others" ? "mr-[-6px]" : ""
-        }`}
-      >
+    <div
+      className="home-tabs-others-group inline-flex shrink-0 items-center"
+      data-others-open={tab === "others" ? "true" : undefined}
+    >
+      <div className="home-tabs-others-trigger relative inline-flex shrink-0 overflow-visible">
         <TabsTrigger
           value="others"
           className={`t-tab ${othersTriggerClassName}`}
@@ -279,8 +286,11 @@ export function HomeTabsHeader({
         >
           Others
         </TabsTrigger>
-        <OthersNowPlayingNotes active={tab !== "others"} />
       </div>
+      <OthersMusicPeek
+        active={tab !== "others"}
+        onSelect={() => handleOtherSubtabSelect("music")}
+      />
       <div
         aria-label="Other sections"
         className="t-resize home-other-tabs -ml-[30px]"
@@ -318,6 +328,13 @@ export function HomeTabsHeader({
     <div
       ref={tabsBarRef}
       className="sticky top-0 z-10 w-full overflow-visible bg-background/95 px-4 py-2 backdrop-blur-[8px] supports-[backdrop-filter]:bg-background/80"
+      style={
+        {
+          "--tabs-dur": `${HOME_TABS_TRANSITION_DURATION}ms`,
+          "--home-tabs-stack-dur": `${HOME_TABS_STACK_DURATION}ms`,
+          "--home-tabs-stack-stagger": `${HOME_TABS_STACK_STAGGER}ms`,
+        } as CSSProperties
+      }
     >
       {isMobileOthersDropdown ? (
         <DropdownMenu

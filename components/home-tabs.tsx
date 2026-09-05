@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type CSSProperties,
@@ -11,7 +12,6 @@ import {
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { BooksPanel } from "@/components/books-panel";
 import { MusicPanel } from "@/components/music-panel";
-import { ObjectsPanel } from "@/components/objects-panel";
 import { PlayPanel } from "@/components/play-panel";
 import { StackPanel } from "@/components/stack-panel";
 import { WorkRow } from "@/components/work-row";
@@ -34,8 +34,6 @@ import {
 import type { MusicSection } from "@/lib/music";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { WORK_ITEMS } from "@/lib/work";
-
-const PLAY_ROW_FADE_HEIGHT = 32;
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -72,16 +70,20 @@ function tabParamForSelection(
   }
 }
 
-function OtherTabPanelContent({ tab }: { tab: OtherTab }) {
+function OtherTabPanelContent({
+  tab,
+  settled,
+}: {
+  tab: OtherTab;
+  settled: boolean;
+}) {
   switch (tab) {
     case "books":
       return <BooksPanel />;
     case "music":
-      return <MusicPanel />;
+      return <MusicPanel shareLayout={settled} />;
     case "stack":
       return <StackPanel />;
-    case "objects":
-      return <ObjectsPanel />;
     default: {
       const exhaustive: never = tab;
       return exhaustive;
@@ -89,14 +91,58 @@ function OtherTabPanelContent({ tab }: { tab: OtherTab }) {
   }
 }
 
+function clearSliderHeight(slider: HTMLElement) {
+  slider.style.height = "";
+  slider.style.transition = "";
+  document.documentElement.style.removeProperty("overflow-anchor");
+}
+
+function tweenSliderHeight(
+  slider: HTMLElement,
+  from: number,
+  to: number,
+  animate: boolean,
+) {
+  const topBefore = slider.getBoundingClientRect().top;
+  document.documentElement.style.overflowAnchor = "none";
+
+  slider.style.transition = "none";
+  slider.style.height = `${from}px`;
+  void slider.offsetHeight;
+
+  if (animate && from !== to) {
+    const duration = pageSlideDurationMs(
+      slider,
+      HOME_TABS_TRANSITION_DURATION,
+    );
+    slider.style.transition = `height ${duration}ms var(--page-slide-ease)`;
+  }
+
+  slider.style.height = `${to}px`;
+
+  const topAfter = slider.getBoundingClientRect().top;
+  if (window.scrollY > 0 && topAfter !== topBefore) {
+    window.scrollBy({
+      top: topAfter - topBefore,
+      behavior: "instant",
+    });
+  }
+}
+
 function OtherTabPanels({ activeTab }: { activeTab: OtherTab }) {
   const slideRef = useRef<HTMLDivElement>(null);
+  const isFirstPaintRef = useRef(true);
   const [visibleTabs, setVisibleTabs] = useState<OtherTab[]>([activeTab]);
   const [renderedTab, setRenderedTab] = useState<OtherTab>(activeTab);
   const [flowTab, setFlowTab] = useState<OtherTab>(activeTab);
   const [exitEnabled, setExitEnabled] = useState(false);
+  const [slideEnterSide, setSlideEnterSide] = useState<"before" | "after">(
+    "after",
+  );
   const renderedIndex = OTHER_TABS.findIndex((item) => item.value === renderedTab);
   const renderedPage = String(renderedIndex + 1);
+  const othersSettled =
+    visibleTabs.length === 1 && visibleTabs[0] === activeTab;
 
   if (!visibleTabs.includes(activeTab)) {
     setVisibleTabs([...visibleTabs, activeTab]);
@@ -106,6 +152,26 @@ function OtherTabPanels({ activeTab }: { activeTab: OtherTab }) {
     const frame = requestAnimationFrame(() => setExitEnabled(true));
     return () => cancelAnimationFrame(frame);
   }, []);
+
+  useEffect(() => {
+    if (isFirstPaintRef.current) {
+      isFirstPaintRef.current = false;
+      return;
+    }
+
+    const previousIndex = OTHER_TABS.findIndex(
+      (item) => item.value === renderedTab,
+    );
+    const nextIndex = OTHER_TABS.findIndex((item) => item.value === activeTab);
+
+    if (
+      previousIndex !== -1 &&
+      nextIndex !== -1 &&
+      previousIndex !== nextIndex
+    ) {
+      setSlideEnterSide(nextIndex < previousIndex ? "before" : "after");
+    }
+  }, [activeTab, renderedTab]);
 
   useEffect(() => {
     if (!visibleTabs.includes(activeTab) || renderedTab === activeTab) return;
@@ -133,9 +199,29 @@ function OtherTabPanels({ activeTab }: { activeTab: OtherTab }) {
     return () => window.clearTimeout(timeout);
   }, [activeTab, renderedTab, visibleTabs]);
 
+  useLayoutEffect(() => {
+    const slider = slideRef.current;
+    if (!slider) return;
+
+    if (visibleTabs.length === 1) {
+      clearSliderHeight(slider);
+      return;
+    }
+
+    const flowPage = slider.querySelector<HTMLElement>(
+      '.t-page[data-flow="true"]',
+    );
+    const from = slider.style.height
+      ? slider.getBoundingClientRect().height
+      : slider.offsetHeight;
+    const to = flowPage?.offsetHeight ?? from;
+
+    tweenSliderHeight(slider, from, to, !prefersReducedMotion());
+  }, [flowTab, visibleTabs.length]);
+
   return (
     <div
-      className={`t-page-slide w-full${visibleTabs.length > 1 ? " is-sliding" : ""}`}
+      className={`t-page-slide t-page-slide-no-blur w-full${visibleTabs.length > 1 ? " is-sliding" : ""}`}
       data-page={renderedPage}
       ref={slideRef}
       style={
@@ -143,8 +229,18 @@ function OtherTabPanels({ activeTab }: { activeTab: OtherTab }) {
           "--page-slide-dur": `${HOME_TABS_TRANSITION_DURATION}ms`,
           "--page-fade-dur": `${HOME_TABS_TRANSITION_DURATION}ms`,
           "--page-exit-enabled": exitEnabled ? "1" : "0",
+          "--page-blur": "0px",
         } as CSSProperties
       }
+      onTransitionEnd={(event) => {
+        if (event.target !== slideRef.current) return;
+        if (event.propertyName !== "height") return;
+        if (visibleTabs.length > 1) return;
+
+        const slider = slideRef.current;
+        if (!slider) return;
+        clearSliderHeight(slider);
+      }}
     >
       {OTHER_TABS.map((item, index) => {
         if (!visibleTabs.includes(item.value)) return null;
@@ -167,9 +263,14 @@ function OtherTabPanels({ activeTab }: { activeTab: OtherTab }) {
             data-flow={isFlow ? "true" : undefined}
             data-page-id={String(index + 1)}
             data-side={side}
+            data-enter-from={
+              isRendered && visibleTabs.length > 1 ? slideEnterSide : undefined
+            }
             inert={isRendered ? undefined : true}
           >
-            <OtherTabPanelContent tab={item.value} />
+            <div className="px-4">
+              <OtherTabPanelContent tab={item.value} settled={othersSettled} />
+            </div>
           </section>
         );
       })}
@@ -180,13 +281,11 @@ function OtherTabPanels({ activeTab }: { activeTab: OtherTab }) {
 function HomeTabPanel({
   value,
   otherTab,
-  playFadeHeight,
   mediaActive,
   notesPanel,
 }: {
   value: HomeTab;
   otherTab: OtherTab;
-  playFadeHeight: number;
   mediaActive: boolean;
   notesPanel: ReactNode;
 }) {
@@ -206,15 +305,14 @@ function HomeTabPanel({
       break;
     case "play":
       content = (
-        <PlayPanel fadeHeight={playFadeHeight} mediaActive={mediaActive} />
+        <PlayPanel mediaActive={mediaActive} />
       );
       break;
     case "notes":
       content = notesPanel;
       break;
     case "others":
-      content = <OtherTabPanels activeTab={otherTab} />;
-      break;
+      return <OtherTabPanels activeTab={otherTab} />;
     default: {
       const exhaustive: never = value;
       return exhaustive;
@@ -418,7 +516,7 @@ export function HomeTabs({
 
         selectTab(nextTab);
       }}
-      className="w-full gap-12"
+      className="w-full gap-6"
     >
       <HomeTabsHeader
         tab={tab}
@@ -466,9 +564,14 @@ export function HomeTabs({
               }
               data-active={isRendered ? "true" : undefined}
               data-flow={isFlow ? "true" : undefined}
+              data-no-blur={
+                item.value === "play" || item.value === "others"
+                  ? "true"
+                  : undefined
+              }
               className="t-page flex-none p-0"
               style={
-                item.value === "play"
+                item.value === "play" || item.value === "others"
                   ? ({ "--page-blur": "0px" } as CSSProperties)
                   : undefined
               }
@@ -476,7 +579,6 @@ export function HomeTabs({
               <HomeTabPanel
                 value={item.value}
                 otherTab={otherTab}
-                playFadeHeight={PLAY_ROW_FADE_HEIGHT}
                 mediaActive={
                   item.value !== "play" ||
                   (tab === "play" &&

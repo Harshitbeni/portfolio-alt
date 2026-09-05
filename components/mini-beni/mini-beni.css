@@ -16,6 +16,10 @@
   will-change: gap;
 }
 
+[data-mini-beni-profile-link][data-mini-beni-reveal="docked"] {
+  cursor: pointer;
+}
+
 [data-mini-beni-profile-circle] {
   flex: 0 0 auto;
   overflow: hidden;
@@ -160,7 +164,7 @@
 
 .mini-beni-chat-transcript-fades {
   --mini-beni-chat-fade-height: 48px;
-  --mini-beni-chat-fade-color: #fcfcfc;
+  --mini-beni-chat-fade-color: var(--gray-1);
   --mini-beni-chat-fade-opacity: 1;
   isolation: isolate;
 }

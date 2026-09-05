@@ -1,5 +1,6 @@
 import { ProductDesignerShimmer } from "@/components/product-designer-shimmer";
 import { Suspense } from "react";
+import { HomeStagger } from "@/components/home-stagger";
 import { HomeTabs } from "@/components/home-tabs";
 import { NavCard } from "@/components/nav-card";
 import { NotesPanel } from "@/components/notes-panel";
@@ -37,25 +38,25 @@ export default async function Home({
   return (
     <>
       <h1 className="sr-only">Harshit Beniwal</h1>
-      <div className="flex w-full flex-col items-start px-3">
-        <NavCard location={location} liveLocation={false} />
-      </div>
-      <div className="flex w-full flex-col items-start gap-12">
-        <div className="px-4">
+      <HomeStagger
+        header={<NavCard location={location} liveLocation={false} />}
+        intro={
           <p className="text-pretty text-sm leading-5 text-muted-foreground">
             Hello, I am a <ProductDesignerShimmer /> who leads with curiosity and thoughtfulness in everything I do, design
             or otherwise. My expertise lies in interaction design, systems
             thinking, and putting uncommon care.
           </p>
-        </div>
-        <Suspense fallback={null}>
-          <HomeTabs
-            initialMusicSections={initialMusicSections}
-            initialMusicTotalTracks={musicPreview?.totalTracks}
-            notesPanel={<NotesPanel />}
-          />
-        </Suspense>
-      </div>
+        }
+        tabs={
+          <Suspense fallback={null}>
+            <HomeTabs
+              initialMusicSections={initialMusicSections}
+              initialMusicTotalTracks={musicPreview?.totalTracks}
+              notesPanel={<NotesPanel />}
+            />
+          </Suspense>
+        }
+      />
       <TimeModeToggle />
     </>
   );

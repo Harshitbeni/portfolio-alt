@@ -342,6 +342,33 @@ export async function getMusicLibrary(): Promise<MusicTrack[]> {
   }
 }
 
+export async function getMusicKnowledgeSource(): Promise<{
+  tracks: MusicTrack[];
+  nowPlaying: MusicTrack | null;
+  totalTracks: number;
+  sections: MusicSection[];
+} | null> {
+  try {
+    const redis = getRedis();
+    const stored = await redis.get<StoredMusicLibrary>(MUSIC_LIBRARY_KEY);
+
+    if (!stored?.tracks.length) {
+      return null;
+    }
+
+    const preview = previewFromLibrary(stored);
+
+    return {
+      tracks: stored.tracks,
+      nowPlaying: stored.nowPlaying ?? null,
+      totalTracks: preview.totalTracks,
+      sections: preview.sections,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function getMusicPreview(): Promise<MusicPreview | null> {
   try {
     const redis = getRedis();

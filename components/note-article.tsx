@@ -1,8 +1,10 @@
 import { Children, isValidElement, type ReactNode } from "react";
-import Image from "next/image";
 import type { Components } from "react-markdown";
 import Markdown from "react-markdown";
 import { NoteHomeButton } from "@/components/note-home-button";
+import { NoteLikeButton } from "@/components/note-like-button";
+import { NoteStagger } from "@/components/note-stagger";
+import { Image } from "@/components/ui/image";
 import type { Note } from "@/lib/notes";
 
 const linkClassName =
@@ -17,22 +19,35 @@ const NOTE_IMAGE_SIZE: Record<string, { width: number; height: number }> = {
   "/notes/youtube-after.webp": { width: 1200, height: 725 },
 };
 
+const NOTE_IMAGE_CAPTION: Record<string, string> = {
+  "/notes/finding-flow-1.webp": "Kerala, Alleppey, 2025",
+  "/notes/i-have-a-dream-1.webp": "Kerala, Alleppey, 2025",
+};
+
 function NoteImage({ src, alt }: { src?: string; alt?: string }) {
   if (!src?.startsWith("/notes/")) return null;
 
   const label = alt === "Before" || alt === "After" ? alt : undefined;
+  const caption = NOTE_IMAGE_CAPTION[src];
   const size = NOTE_IMAGE_SIZE[src] ?? { width: 1200, height: 725 };
+
+  const image = (
+    <Image
+      src={src}
+      alt={label ? `${label} screenshot` : (alt ?? "")}
+      width={size.width}
+      height={size.height}
+      className="w-full"
+      sizes="(max-width: 600px) calc(100vw - 2rem), 568px"
+      caption={caption}
+    />
+  );
+
+  if (caption) return image;
 
   return (
     <figure>
-      <Image
-        src={src}
-        alt={label ? `${label} screenshot` : (alt ?? "")}
-        width={size.width}
-        height={size.height}
-        className="h-auto w-full rounded-md border border-gray-a6"
-        sizes="(max-width: 600px) calc(100vw - 2rem), 568px"
-      />
+      {image}
       {label ? (
         <figcaption className="mt-2 text-sm leading-5 text-gray-a10">
           {label}
@@ -48,6 +63,8 @@ function isNoteImageChild(child: ReactNode) {
   return typeof child.props.src === "string" && child.props.src.startsWith("/notes/");
 }
 
+const noteBodyClassName = "text-md leading-[1.6] font-normal text-gray-a12";
+
 function Paragraph({ children }: { children?: ReactNode }) {
   const childArray = Children.toArray(children).filter((child) => {
     if (typeof child === "string") return child.trim() !== "";
@@ -58,19 +75,21 @@ function Paragraph({ children }: { children?: ReactNode }) {
   }
 
   return (
-    <p className="text-pretty text-md leading-6 text-gray-a11">{children}</p>
+    <p className={`text-pretty ${noteBodyClassName}`}>
+      {children}
+    </p>
   );
 }
 
 const markdownComponents: Components = {
   p: ({ children }) => <Paragraph>{children}</Paragraph>,
   ul: ({ children }) => (
-    <ul className="list-disc space-y-2 pl-5 text-md leading-6 text-gray-a11">
+    <ul className={`list-disc space-y-2 pl-5 ${noteBodyClassName}`}>
       {children}
     </ul>
   ),
   ol: ({ children }) => (
-    <ol className="list-decimal space-y-6 pl-5 text-md leading-6 text-gray-a11">
+    <ol className={`list-decimal space-y-6 pl-5 ${noteBodyClassName}`}>
       {children}
     </ol>
   ),
@@ -84,7 +103,9 @@ const markdownComponents: Components = {
     </a>
   ),
   blockquote: ({ children }) => (
-    <blockquote className="border-l-2 border-gray-a6 pl-4 text-md leading-6 text-gray-a11">
+    <blockquote
+      className={`border-l-2 border-gray-a6 pl-4 ${noteBodyClassName}`}
+    >
       {children}
     </blockquote>
   ),
@@ -97,18 +118,19 @@ const markdownComponents: Components = {
 export function NoteArticle({ note }: { note: Note }) {
   return (
     <article className="w-full max-w-[600px] px-4 text-sm">
-      <header className="mb-8 flex flex-col gap-4">
-        <NoteHomeButton />
-        <div className="flex flex-col gap-1">
-          <h1 className="text-md-medium text-gray-a12">
-            {note.title}
-          </h1>
-          <p className="text-sm leading-5 text-gray-a10">{note.date}</p>
+      <NoteStagger
+        slug={note.slug}
+        home={<NoteHomeButton />}
+        title={note.title}
+        date={note.date}
+      >
+        <div className="flex flex-col gap-6">
+          <Markdown components={markdownComponents}>{note.body}</Markdown>
         </div>
-      </header>
-      <div className="flex flex-col gap-4">
-        <Markdown components={markdownComponents}>{note.body}</Markdown>
-      </div>
+        <footer className="mt-10">
+          <NoteLikeButton key={note.slug} slug={note.slug} />
+        </footer>
+      </NoteStagger>
     </article>
   );
 }

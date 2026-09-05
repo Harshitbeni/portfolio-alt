@@ -10,6 +10,7 @@ import {
 import { AvatarPerson } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Image } from "@/components/ui/image";
 import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
@@ -42,13 +43,11 @@ import {
   type PaletteToken,
 } from "@/lib/tokens";
 import {
-  TYPE_STYLE_NAMES,
   TYPE_STYLE_WEIGHTS,
   TYPE_TOKEN_NAMES,
   TYPE_TOKENS,
   TYPE_WEIGHTS as TYPE_TOKEN_WEIGHTS,
-  typeStyleToken,
-  type TypeStyleName,
+  typeTokenStyles,
   type TypeTokenName,
 } from "@/lib/type-tokens";
 import {
@@ -59,6 +58,7 @@ import {
 import { cn } from "@/lib/utils";
 import { BookRow } from "@/components/book-row";
 import { MusicRow } from "@/components/music-row";
+import { NoteLikeButton } from "@/components/note-like-button";
 import { ObjectRow } from "@/components/object-row";
 import { PlayRow } from "@/components/play-row";
 import { StackRow } from "@/components/stack-row";
@@ -76,16 +76,22 @@ import { PlaygroundVideoPlayer } from "./playground-video-player";
 const inspectorRowClassName =
   "flex h-8 shrink-0 items-center justify-between gap-3 text-sm text-muted-foreground";
 
-const TYPE_STYLE_LABELS: Record<TypeStyleName, string> = {
+const TYPE_TOKEN_LABELS: Record<TypeTokenName, string> = {
+  xl: "XL",
+  lg: "LG",
   md: "MD",
-  "md-medium": "MD Medium",
-  "md-semibold": "MD Semibold",
   sm: "SM",
   xs: "XS",
   xxs: "XXS",
 };
 
 const TYPE_PREVIEW_SENTENCE = "Harshit Beniwal is an Interface Designer.";
+
+function typePreviewLineHeight(token: TypeTokenName) {
+  if (token === "xl") return "2rem";
+  if (token === "lg" || token === "md") return "1.5rem";
+  return undefined;
+}
 
 const Plus = defaultIcons.plus;
 const ChevronDown = defaultIcons["chevron-down"];
@@ -111,6 +117,8 @@ type Selection =
   | "work-row"
   | "play-row"
   | "video-player"
+  | "image"
+  | "note-like"
   | "mini-beni-typing";
 
 const BUTTON_VARIANTS = [
@@ -225,8 +233,7 @@ export function Playground() {
   const [colorOverrides, setColorOverrides] = useState<
     Partial<Record<PaletteToken, string>>
   >({});
-  const [typeStyle, setTypeStyle] = useState<TypeStyleName>("sm");
-  const typeToken = typeStyleToken(typeStyle);
+  const [typeToken, setTypeToken] = useState<TypeTokenName>("sm");
   const [typeSizes, setTypeSizes] = useState<Record<TypeTokenName, number>>(
     () => ({ ...TYPE_TOKENS })
   );
@@ -320,6 +327,18 @@ export function Playground() {
     overlay: false,
     showMuteButton: false,
   });
+  const [image, setImage] = useState({
+    caption: "Sunset",
+    captionAlign: "center" as "start" | "center",
+    glow: false,
+    overlay: false,
+    radius: 6,
+    stroke: true,
+  });
+  const [noteLike, setNoteLike] = useState({
+    liked: false,
+    count: 10,
+  });
   const previewStyle = useMemo(() => {
     const style: Record<string, string> = {};
     for (const name of TYPE_TOKEN_NAMES) {
@@ -361,22 +380,22 @@ export function Playground() {
       style={previewStyle}
       className="grid h-dvh grid-cols-[12.5rem_minmax(0,1fr)_14rem] bg-background text-foreground"
     >
-      <nav className="flex flex-col border-r border-border text-sm">
+      <nav className="flex flex-col text-sm shadow-[inset_-0.5px_0_0_0_var(--gray-5)]">
         <div className="flex flex-1 flex-col overflow-y-auto px-3 py-5">
           <NavSection
             label="Typography"
             icon={filledIcons.type}
             defaultOpen={false}
           >
-            {TYPE_STYLE_NAMES.map((name) => (
+            {TYPE_TOKEN_NAMES.map((name) => (
               <NavItem
                 key={name}
-                label={TYPE_STYLE_LABELS[name]}
-                current={selection === "typography" && typeStyle === name}
+                label={TYPE_TOKEN_LABELS[name]}
+                current={selection === "typography" && typeToken === name}
                 nested
                 onClick={() => {
                   setSelection("typography");
-                  setTypeStyle(name);
+                  setTypeToken(name);
                 }}
               />
             ))}
@@ -485,7 +504,7 @@ export function Playground() {
               onClick={() => setSelection("tabs")}
             />
             <NavItem
-              label="Home tabs header"
+              label="Home tabs"
               current={selection === "home-tabs-header"}
               nested
               custom
@@ -534,6 +553,20 @@ export function Playground() {
               onClick={() => setSelection("play-row")}
             />
             <NavItem
+              label="Image"
+              current={selection === "image"}
+              nested
+              custom
+              onClick={() => setSelection("image")}
+            />
+            <NavItem
+              label="Note like"
+              current={selection === "note-like"}
+              nested
+              custom
+              onClick={() => setSelection("note-like")}
+            />
+            <NavItem
               label="Video player"
               current={selection === "video-player"}
               nested
@@ -548,7 +581,7 @@ export function Playground() {
             />
           </NavSection>
         </div>
-        <div className="border-t border-border px-3 py-3">
+        <div className="px-3 py-3">
           <div className="flex items-center gap-1">
             <Button
               size="sm"
@@ -607,24 +640,15 @@ export function Playground() {
 
         {selection === "typography" ? (
           <div className="flex flex-col items-start gap-3">
-            {TYPE_STYLE_NAMES.map((name) => {
+            {typeTokenStyles(typeToken).map((name) => {
               const weightName = TYPE_STYLE_WEIGHTS[name];
               return (
-                <button
+                <p
                   key={name}
-                  type="button"
-                  aria-current={typeStyle === name ? "true" : undefined}
-                  onClick={() => setTypeStyle(name)}
-                  className={cn(
-                    "text-left outline-none focus-visible:outline focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-focus-ring",
-                    typeStyle === name
-                      ? "text-foreground"
-                      : "text-muted-foreground"
-                  )}
+                  className="text-left text-foreground"
                   style={{
-                    fontSize: `var(--type-${typeStyleToken(name)})`,
-                    lineHeight:
-                      typeStyleToken(name) === "md" ? "1.5rem" : undefined,
+                    fontSize: `var(--type-${typeToken})`,
+                    lineHeight: typePreviewLineHeight(typeToken),
                     fontWeight: weightName
                       ? TYPE_TOKEN_WEIGHTS[weightName]
                       : undefined,
@@ -634,7 +658,7 @@ export function Playground() {
                   }}
                 >
                   {TYPE_PREVIEW_SENTENCE}
-                </button>
+                </p>
               );
             })}
           </div>
@@ -795,6 +819,24 @@ export function Playground() {
 
         {selection === "home-tabs-header" ? <PlaygroundHomeTabsHeader /> : null}
 
+        {selection === "image" ? (
+          <div className="w-full max-w-[568px]">
+            <Image
+              src="/notes/finding-flow-1.webp"
+              alt="Person standing beside a bicycle on a beach at sunset"
+              width={1200}
+              height={899}
+              sizes="568px"
+              caption={image.caption || undefined}
+              captionAlign={image.captionAlign}
+              glow={image.glow}
+              overlay={image.overlay}
+              radius={image.radius}
+              stroke={image.stroke}
+            />
+          </div>
+        ) : null}
+
         {selection === "video-player" ? (
           <PlaygroundVideoPlayer
             autoplayOnHover={videoPlayer.autoplayOnHover}
@@ -876,12 +918,25 @@ export function Playground() {
           </div>
         ) : null}
 
+        {selection === "note-like" ? (
+          <NoteLikeButton
+            liked={noteLike.liked}
+            count={noteLike.count}
+            onLikedChange={(liked) =>
+              setNoteLike((current) => ({ ...current, liked }))
+            }
+            onCountChange={(count) =>
+              setNoteLike((current) => ({ ...current, count }))
+            }
+          />
+        ) : null}
+
         {selection === "mini-beni-typing" ? (
           <PlaygroundMiniBeniTypingIndicator />
         ) : null}
       </main>
 
-      <aside className="flex min-h-0 flex-col border-l border-border">
+      <aside className="flex min-h-0 flex-col shadow-[inset_0.5px_0_0_0_var(--gray-5)]">
         <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-3 py-5">
           {selection === "color" ? (
             <>
@@ -1567,6 +1622,107 @@ export function Playground() {
                     setPlayRow((current) => ({
                       ...current,
                       mediaCount: Math.max(0, Number(event.target.value)),
+                    }))
+                  }
+                  className="h-8 w-16 bg-transparent text-right text-sm tabular-nums text-foreground outline-none"
+                />
+              </Field>
+            </>
+          ) : null}
+
+          {selection === "image" ? (
+            <>
+              <Field label="caption">
+                <input
+                  value={image.caption}
+                  onChange={(event) =>
+                    setImage((current) => ({
+                      ...current,
+                      caption: event.target.value,
+                    }))
+                  }
+                  className="h-8 w-32 bg-transparent text-right text-sm text-foreground outline-none"
+                />
+              </Field>
+              <InspectorSelect
+                label="caption align"
+                value={image.captionAlign}
+                options={["start", "center"] as const}
+                onChange={(value) =>
+                  setImage((current) => ({
+                    ...current,
+                    captionAlign: value as "start" | "center",
+                  }))
+                }
+              />
+              <InspectorCheck
+                label="glow"
+                checked={image.glow}
+                onToggle={() =>
+                  setImage((current) => ({
+                    ...current,
+                    glow: !current.glow,
+                  }))
+                }
+              />
+              <InspectorCheck
+                label="overlay"
+                checked={image.overlay}
+                onToggle={() =>
+                  setImage((current) => ({
+                    ...current,
+                    overlay: !current.overlay,
+                  }))
+                }
+              />
+              <Field label="radius">
+                <input
+                  type="number"
+                  min={0}
+                  value={image.radius}
+                  onChange={(event) =>
+                    setImage((current) => ({
+                      ...current,
+                      radius: Math.max(0, Number(event.target.value)),
+                    }))
+                  }
+                  className="h-8 w-16 bg-transparent text-right text-sm tabular-nums text-foreground outline-none"
+                />
+              </Field>
+              <InspectorCheck
+                label="stroke"
+                checked={image.stroke}
+                onToggle={() =>
+                  setImage((current) => ({
+                    ...current,
+                    stroke: !current.stroke,
+                  }))
+                }
+              />
+            </>
+          ) : null}
+
+          {selection === "note-like" ? (
+            <>
+              <InspectorCheck
+                label="liked"
+                checked={noteLike.liked}
+                onToggle={() =>
+                  setNoteLike((current) => ({
+                    ...current,
+                    liked: !current.liked,
+                  }))
+                }
+              />
+              <Field label="count">
+                <input
+                  type="number"
+                  min={0}
+                  value={noteLike.count}
+                  onChange={(event) =>
+                    setNoteLike((current) => ({
+                      ...current,
+                      count: Math.max(0, Number(event.target.value)),
                     }))
                   }
                   className="h-8 w-16 bg-transparent text-right text-sm tabular-nums text-foreground outline-none"

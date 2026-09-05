@@ -417,6 +417,7 @@ function ExpandToggle({
     >
       <button
         type="button"
+        data-nav-card-expand=""
         aria-expanded={expanded}
         aria-controls={panelId}
         aria-label={expanded ? "Collapse profile" : "Expand profile"}

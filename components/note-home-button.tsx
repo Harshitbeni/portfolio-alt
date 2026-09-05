@@ -8,7 +8,12 @@ export function NoteHomeButton() {
   const ArrowLeft = useIcon("arrow-left");
 
   return (
-    <Button variant="ghost" asChild className="-ms-2.5 self-start font-normal">
+    <Button
+      variant="ghost"
+      size="sm"
+      asChild
+      className="-ms-2.5 self-start font-normal text-gray-a10"
+    >
       <Link href="/?tab=notes">
         <ArrowLeft />
         Home

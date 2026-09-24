@@ -72,6 +72,12 @@ import { WORK_ITEMS, type WorkIconName } from "@/lib/work";
 import { PlaygroundHomeTabsHeader } from "@/components/home-tabs/playground-home-tabs-header";
 import { PlaygroundMiniBeniTypingIndicator } from "./playground-mini-beni-typing-indicator";
 import { PlaygroundVideoPlayer } from "./playground-video-player";
+import { PlaygroundVoiceOrb } from "./playground-voice-orb";
+import {
+  ORB_RECIPES,
+  type OrbActivity,
+  type OrbRecipe,
+} from "@/components/voice-orb/tuning";
 
 const inspectorRowClassName =
   "flex h-8 shrink-0 items-center justify-between gap-3 text-sm text-muted-foreground";
@@ -119,7 +125,8 @@ type Selection =
   | "video-player"
   | "image"
   | "note-like"
-  | "mini-beni-typing";
+  | "mini-beni-typing"
+  | "voice-orb";
 
 const BUTTON_VARIANTS = [
   "default",
@@ -207,6 +214,18 @@ const DROPDOWN_ITEM_ICONS = {
 } as const satisfies Record<(typeof DROPDOWN_ITEMS)[number], IconName>;
 /** Unchecked: 6px (same as `--radius` on `:root`). Checked: pill. */
 const PREVIEW_RADIUS = 6;
+const VOICE_ORB_MODES = ["idle", "speaking", "listening"] as const;
+const VOICE_ORB_COLOR_LABELS: Record<OrbRecipe, string> = {
+  concierge: "Concierge",
+  healthcare: "Healthcare",
+  insurance: "Insurance",
+  banking: "Banking",
+};
+const VOICE_ORB_MODE_LABELS: Record<(typeof VOICE_ORB_MODES)[number], string> = {
+  idle: "Idle",
+  speaking: "Speaking",
+  listening: "Listening",
+};
 const PREVIEW_RADIUS_PILL = 9999;
 
 type ButtonVariant = (typeof BUTTON_VARIANTS)[number];
@@ -338,6 +357,10 @@ export function Playground() {
   const [noteLike, setNoteLike] = useState({
     liked: false,
     count: 10,
+  });
+  const [voiceOrb, setVoiceOrb] = useState({
+    recipe: "concierge" as OrbRecipe,
+    activity: "idle" as OrbActivity,
   });
   const previewStyle = useMemo(() => {
     const style: Record<string, string> = {};
@@ -578,6 +601,13 @@ export function Playground() {
               nested
               custom
               onClick={() => setSelection("mini-beni-typing")}
+            />
+            <NavItem
+              label="Voice orb"
+              current={selection === "voice-orb"}
+              nested
+              custom
+              onClick={() => setSelection("voice-orb")}
             />
           </NavSection>
         </div>
@@ -933,6 +963,16 @@ export function Playground() {
 
         {selection === "mini-beni-typing" ? (
           <PlaygroundMiniBeniTypingIndicator />
+        ) : null}
+
+        {selection === "voice-orb" ? (
+          <PlaygroundVoiceOrb
+            recipe={voiceOrb.recipe}
+            activity={voiceOrb.activity}
+            onActivityChange={(activity) =>
+              setVoiceOrb((current) => ({ ...current, activity }))
+            }
+          />
         ) : null}
       </main>
 
@@ -1797,6 +1837,35 @@ export function Playground() {
               />
             </>
           ) : null}
+
+          {selection === "voice-orb" ? (
+            <>
+              <InspectorSelect
+                label="color"
+                value={voiceOrb.recipe}
+                options={ORB_RECIPES}
+                optionLabels={VOICE_ORB_COLOR_LABELS}
+                onChange={(value) =>
+                  setVoiceOrb((current) => ({
+                    ...current,
+                    recipe: value as OrbRecipe,
+                  }))
+                }
+              />
+              <InspectorSelect
+                label="mode"
+                value={voiceOrb.activity}
+                options={VOICE_ORB_MODES}
+                optionLabels={VOICE_ORB_MODE_LABELS}
+                onChange={(value) =>
+                  setVoiceOrb((current) => ({
+                    ...current,
+                    activity: value as OrbActivity,
+                  }))
+                }
+              />
+            </>
+          ) : null}
         </div>
       </aside>
     </div>
@@ -1978,11 +2047,13 @@ function InspectorSelect({
   label,
   value,
   options,
+  optionLabels,
   onChange,
 }: {
   label: string;
   value: string;
   options: readonly string[];
+  optionLabels?: Record<string, string>;
   onChange: (value: string) => void;
 }) {
   return (
@@ -1991,13 +2062,13 @@ function InspectorSelect({
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" className="h-8">
-            {value}
+            {optionLabels?.[value] ?? value}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
           {options.map((option) => (
             <DropdownMenuItem key={option} onSelect={() => onChange(option)}>
-              {option}
+              {optionLabels?.[option] ?? option}
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>

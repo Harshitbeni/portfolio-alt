@@ -303,7 +303,7 @@ function MiniBeniSendIcon() {
       join="round"
       fill="outlined"
       radius="2"
-      stroke="1.5"
+      stroke="2"
       size={12}
       color="currentColor"
       className="text-current [&_mask]:![color:#fff] [&_mask_*]:![color:#fff]"
@@ -744,6 +744,7 @@ export function MiniBeniChatInput({
             autoComplete="off"
             autoFocus
             button={<MiniBeniSendIcon />}
+            buttonClassName="bg-blue-9 text-white hover:bg-blue-10"
             buttonLabel="Send"
             buttonType="submit"
             className="border-border bg-popover text-foreground has-[input:focus]:border-gray-8 has-[input:focus-visible]:outline-none"

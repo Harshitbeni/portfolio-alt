@@ -72,6 +72,7 @@ function Input({
   buttonLabel,
   buttonType = "button",
   buttonVariant = "default",
+  buttonClassName,
   onButtonClick,
   disabled,
   style,
@@ -91,6 +92,8 @@ function Input({
     buttonType?: "button" | "submit"
     /** Variant of the trailing icon button. Defaults to Button `"default"`. */
     buttonVariant?: VariantProps<typeof buttonVariants>["variant"]
+    /** Extra classes for the trailing icon button. */
+    buttonClassName?: string
     onButtonClick?: () => void
   }) {
   const radius = resolveRadius(rounded, pill)
@@ -137,7 +140,8 @@ function Input({
         onClick={onButtonClick}
         className={cn(
           "absolute inset-y-0 my-auto border-0 disabled:opacity-100",
-          size === "sm" ? "end-px" : "end-1"
+          size === "sm" ? "end-px" : "end-1",
+          buttonClassName
         )}
       >
         {button === true ? <Search /> : button}
